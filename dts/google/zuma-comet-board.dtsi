@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Comet board-common device tree source.
+ *
+ * Copyright 2022 Google LLC
+ */
+
+#include "../google-dts-base/zuma-board.dtsi"
+
+#include "zuma-comet-camera-pmic.dtsi"
+#include "zuma-comet-usb.dtsi"
+#include "zuma-comet-battery.dtsi"
+#include "zuma-comet-charging.dtsi"
+#include "zuma-comet-usecases.dtsi"
+#include "zuma-comet-wcharger.dtsi"
+#include "zuma-comet-gsa-gsc.dtsi"

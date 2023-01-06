@@ -1,0 +1,81 @@
+# KERNEL_DIR is set by the environment to the directory where the BUILD_CONFIG
+# file is located.
+DEVICE_DIR=${KERNEL_DIR}
+SOC_DIR=private/google-modules/soc/gs
+# Compile these modules with the GKI kernel
+KERNEL_DIR=${GKI_KERNEL_DIR:-"aosp-staging"}
+DEVICE_REL_DIR=$(rel_path2 ${DEVICE_DIR} ${KERNEL_DIR})
+
+# These just need to be relative to the ROOT_DIR
+GKI_FRAGMENT_DEFCONFIG=${DEVICE_DIR}/comet_gki.fragment
+. ${ROOT_DIR}/${SOC_DIR}/build.config.zuma
+
+MAKE_GOALS="$MAKE_GOALS
+modules
+dtbs
+"
+
+DTS_EXT_DIR="private/devices/google/comet/dts"
+DTC_INCLUDE=${ROOT_DIR}/${SOC_DIR}/include/dtc
+BUILD_DTBO_IMG=1
+MKDTIMG_FLAGS="--page_size=4096 --id=/:board_id --rev=/:board_rev"
+# These paths need to be relative to KERNEL_DIR.
+MKDTIMG_DTBOS="
+${DEVICE_REL_DIR}/dts/google/*.dtbo
+"
+BCMDHD=4383
+
+FILES="
+google-dts-base/zuma-a0.dtb
+google-dts-base/zuma-b0.dtb
+google/zuma-comet-dev1.dtbo
+"
+
+# Concatenate vendor_kernel_boot_modules.zuma (platform common) and vendor_kernel_boot_modules.comet (device specified) into one file
+POST_KERNEL_BUILD_CMDS="concat_vendor_kernel_boot_modules"
+function concat_vendor_kernel_boot_modules() {
+  cat ${SOC_DIR}/vendor_kernel_boot_modules.zuma \
+    private/devices/google/comet/vendor_kernel_boot_modules.comet > \
+    ${OUT_DIR}/vendor_kernel_boot_modules.concat
+  MODULES_LIST=${OUT_DIR}/vendor_kernel_boot_modules.concat
+}
+
+VENDOR_RAMDISK_CMDS="modify_vendor_ramdisk"
+function modify_vendor_ramdisk() {
+  ln -f init.recovery.ripcurrent.rc init.recovery.comet.rc
+}
+
+EXT_MODULES+="
+private/google-modules/bms/misc
+private/google-modules/soc/gs
+private/google-modules/amplifiers/audiometrics
+private/google-modules/aoc
+private/google-modules/aoc/alsa
+private/google-modules/aoc/usb
+private/google-modules/amplifiers/cs35l41
+private/google-modules/amplifiers/cs40l26
+private/google-modules/amplifiers/tas256x
+private/google-modules/bms
+private/google-modules/display
+private/devices/google/comet/display
+private/google-modules/edgetpu/rio/drivers/edgetpu
+private/google-modules/gpu/mali_kbase
+private/google-modules/gpu/mali_pixel
+private/google-modules/gxp/zuma
+private/google-modules/lwis
+private/google-modules/nfc
+private/google-modules/touch/common
+private/google-modules/touch/fts/ftm5
+private/google-modules/touch/goodix
+private/google-modules/touch/sec
+private/google-modules/video/gchips
+private/google-modules/power/reset
+private/google-modules/wlan/bcm4383
+private/google-modules/bluetooth/broadcom
+private/google-modules/gps/broadcom/bcm47765
+"
+
+UWB_MODULE="private/google-modules/uwb"
+if [ -d "${ROOT_DIR}/${UWB_MODULE}" ]; then
+EXT_MODULES+=${UWB_MODULE}
+fi

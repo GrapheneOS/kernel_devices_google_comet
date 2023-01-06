@@ -1,0 +1,5 @@
+#
+# comet specific modules loaded during first stage init from vendor_kernel_boot
+# (platform common modules are from vendor_kernel_boot_modules.zuma)
+#
+
