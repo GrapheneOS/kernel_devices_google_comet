@@ -26,7 +26,8 @@ ${DEVICE_REL_DIR}/dts/google/*.dtbo
 BCMDHD=4383
 
 FILES="
-google-dts-base/zuma-a0.dtb
+google-dts-base/zuma-a0-foplp.dtb
+google-dts-base/zuma-a0-ipop.dtb
 google-dts-base/zuma-b0.dtb
 google/zuma-comet-dev1.dtbo
 "
