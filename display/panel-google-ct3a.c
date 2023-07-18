@@ -111,37 +111,97 @@ static const struct exynos_dsi_cmd ct3a_init_cmds[] = {
 };
 static DEFINE_EXYNOS_CMD_SET(ct3a_init);
 
+/**
+ * struct ct3a_panel - panel specific runtime info
+ *
+ * This struct maintains ct3a panel specific runtime info, any fixed details about panel
+ * should most likely go into struct exynos_panel_desc
+ */
+struct ct3a_panel {
+	/** @base: base panel struct */
+	struct exynos_panel base;
+};
+#define to_spanel(ctx) container_of(ctx, struct ct3a_panel, base)
+
 static void ct3a_change_frequency(struct exynos_panel *ctx,
-					const unsigned int vrefresh)
+					const struct exynos_panel_mode *pmode)
 {
+	u32 vrefresh = drm_mode_vrefresh(&pmode->mode);
 	u8 val;
 
 	if (!ctx)
 		return;
 
+	if (vrefresh > ctx->op_hz) {
+		dev_err(ctx->dev, "invalid freq setting: op_hz=%u, vrefresh=%u\n",
+				ctx->op_hz, vrefresh);
+		return;
+	}
+
 	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
 	EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0xE1);
-	if (vrefresh == 1) {
-		val = 0x06;
-	} else if (vrefresh == 10) {
-		val = 0x05;
-	} else if (vrefresh == 30) {
-		val = 0x02;
-	} else if (vrefresh == 60) {
-		val = 0x01;
-	} else if (vrefresh == 120) {
-		val = 0x00;
+	if (ctx->op_hz == 60) {
+		if (vrefresh == 1) {
+			val = 0x1D;
+		} else if (vrefresh == 10) {
+			val = 0x1C;
+		} else if (vrefresh == 30) {
+			val = 0x19;
+		} else if (vrefresh == 60) {
+			val = 0x18;
+		} else {
+			dev_warn(ctx->dev,
+				"%s: unsupported init freq %uhz, set to default NS freq 60hz\n",
+				__func__, vrefresh);
+			val = 0x18;
+		}
 	} else {
-		dev_warn(ctx->dev,
-			"%s: unsupported init freq %uhz, set to default freq 60hz\n",
-			__func__, vrefresh);
-		val = 0x01;
+		if (vrefresh == 1) {
+			val = 0x06;
+		} else if (vrefresh == 10) {
+			val = 0x05;
+		} else if (vrefresh == 30) {
+			val = 0x02;
+		} else if (vrefresh == 60) {
+			val = 0x01;
+		} else if (vrefresh == 120) {
+			val = 0x00;
+		} else {
+			dev_warn(ctx->dev,
+				"%s: unsupported init freq %uhz, set to default HS freq 60hz\n",
+				__func__, vrefresh);
+			val = 0x01;
+		}
 	}
 	EXYNOS_DCS_BUF_ADD(ctx, 0x60, val);
 	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
 
 	dev_dbg(ctx->dev, "%s: change to %uHz\n", __func__, vrefresh);
+}
+
+static int ct3a_set_op_hz(struct exynos_panel *ctx, unsigned int hz)
+{
+	const struct exynos_panel_mode *pmode = ctx->current_mode;
+	const unsigned int vrefresh = drm_mode_vrefresh(&ctx->current_mode->mode);
+
+	if ((vrefresh > hz) || ((hz != 60) && (hz != 120))) {
+		dev_err(ctx->dev, "invalid op_hz=%u for vrefresh=%u\n",
+			hz, vrefresh);
+		return -EINVAL;
+	}
+
+	ctx->op_hz = hz;
+
+	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x01);
+	EXYNOS_DCS_BUF_ADD(ctx, 0x60, (hz == 120) ? 0x00 : 0x18);
+	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
+
+	ct3a_change_frequency(ctx, pmode);
+	dev_info(ctx->dev, "set op_hz at %u\n", hz);
+	return 0;
 }
 
 static void ct3a_update_wrctrld(struct exynos_panel *ctx)
@@ -202,7 +262,7 @@ static void ct3a_set_dimming_on(struct exynos_panel *exynos_panel,
 static void ct3a_mode_set(struct exynos_panel *ctx,
 				const struct exynos_panel_mode *pmode)
 {
-	ct3a_change_frequency(ctx, drm_mode_vrefresh(&pmode->mode));
+	ct3a_change_frequency(ctx, pmode);
 }
 
 static bool ct3a_is_mode_seamless(const struct exynos_panel *ctx,
@@ -251,14 +311,12 @@ static int ct3a_enable(struct drm_panel *panel)
 {
 	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
 	const struct exynos_panel_mode *pmode = ctx->current_mode;
-	const struct drm_display_mode *mode;
 	struct drm_dsc_picture_parameter_set pps_payload;
 
 	if (!pmode) {
 		dev_err(ctx->dev, "no current mode set\n");
 		return -EINVAL;
 	}
-	mode = &pmode->mode;
 
 	dev_info(ctx->dev, "%s +\n", __func__);
 
@@ -284,13 +342,26 @@ static int ct3a_enable(struct drm_panel *panel)
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
 
 	/* frequency */
-	ct3a_change_frequency(ctx, drm_mode_vrefresh(mode));
+	ct3a_change_frequency(ctx, pmode);
 
 	EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
 
 	dev_info(ctx->dev, "%s -\n", __func__);
 
 	return 0;
+}
+
+static int ct3a_panel_probe(struct mipi_dsi_device *dsi)
+{
+	struct ct3a_panel *spanel;
+
+	spanel = devm_kzalloc(&dsi->dev, sizeof(*spanel), GFP_KERNEL);
+	if (!spanel)
+		return -ENOMEM;
+
+	spanel->base.op_hz = 120;
+
+	return exynos_panel_common_init(dsi, &spanel->base);
 }
 
 static const struct exynos_display_underrun_param underrun_param = {
@@ -484,6 +555,7 @@ static const struct exynos_panel_funcs ct3a_exynos_funcs = {
 	.set_brightness = ct3a_set_brightness,
 	.set_dimming_on = ct3a_set_dimming_on,
 	.set_hbm_mode = ct3a_set_hbm_mode,
+	.set_op_hz = ct3a_set_op_hz,
 	.is_mode_seamless = ct3a_is_mode_seamless,
 	.mode_set = ct3a_mode_set,
 	.get_panel_rev = ct3a_get_panel_rev,
@@ -524,7 +596,7 @@ static const struct of_device_id exynos_panel_of_match[] = {
 };
 
 static struct mipi_dsi_driver exynos_panel_driver = {
-	.probe = exynos_panel_probe,
+	.probe = ct3a_panel_probe,
 	.remove = exynos_panel_remove,
 	.driver = {
 		.name = "panel-google-ct3a",
