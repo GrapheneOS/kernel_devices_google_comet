@@ -7,7 +7,7 @@ KBUILD_OPTIONS += CONFIG_DRM_PANEL_GOOGLE_CT3B=m
 KBUILD_OPTIONS += CONFIG_DRM_PANEL_GOOGLE_CT3C=m
 
 EXTRA_CFLAGS += -DDYNAMIC_DEBUG_MODULE=1
-EXTRA_CFLAGS += -I$(KERNEL_SRC)/../private/google-modules/display/common
+EXTRA_CFLAGS += -I$(KERNEL_SRC)/../private/google-modules/display/common/include
 EXTRA_CFLAGS += -I$(KERNEL_SRC)/../private/google-modules/display/samsung
 EXTRA_CFLAGS += -I$(KERNEL_SRC)/../private/google-modules/display/samsung/include/uapi
 EXTRA_CFLAGS += -Werror
