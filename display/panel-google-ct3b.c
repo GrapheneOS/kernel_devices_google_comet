@@ -10,6 +10,7 @@
  */
 
 #include <drm/display/drm_dsc_helper.h>
+#include <linux/debugfs.h>
 #include <linux/module.h>
 #include <video/mipi_display.h>
 
@@ -177,15 +178,32 @@ static bool ct3b_is_mode_seamless(const struct exynos_panel *ctx,
 	return drm_mode_equal_no_clocks(&ctx->current_mode->mode, &pmode->mode);
 }
 
-static void ct3b_panel_init(struct exynos_panel *ctx)
+static void ct3b_debugfs_init(struct drm_panel *panel, struct dentry *root)
 {
 #ifdef CONFIG_DEBUG_FS
-	struct dentry *csroot = ctx->debugfs_cmdset_entry;
+	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
+	struct dentry *panel_root, *csroot;
 
-	exynos_panel_debugfs_create_cmdset(ctx, csroot,
-		&ct3b_init_cmd_set, "init");
+	if (!ctx)
+		return;
+
+	panel_root = debugfs_lookup("panel", root);
+	if (!panel_root)
+		return;
+
+	csroot = debugfs_lookup("cmdsets", panel_root);
+	if (!csroot) {
+		goto panel_out;
+	}
+
+	exynos_panel_debugfs_create_cmdset(ctx, csroot, &ct3b_init_cmd_set, "init");
+
+	dput(csroot);
+panel_out:
+	dput(panel_root);
 #endif
 }
+
 
 static void ct3b_get_panel_rev(struct exynos_panel *ctx, u32 id)
 {
@@ -318,6 +336,7 @@ static const struct drm_panel_funcs ct3b_drm_funcs = {
 	.prepare = exynos_panel_prepare,
 	.enable = ct3b_enable,
 	.get_modes = exynos_panel_get_modes,
+	.debugfs_init = ct3b_debugfs_init,
 };
 
 static const struct exynos_panel_funcs ct3b_exynos_funcs = {
@@ -325,7 +344,6 @@ static const struct exynos_panel_funcs ct3b_exynos_funcs = {
 	.set_dimming_on = ct3b_set_dimming_on,
 	.is_mode_seamless = ct3b_is_mode_seamless,
 	.mode_set = ct3b_mode_set,
-	.panel_init = ct3b_panel_init,
 	.get_panel_rev = ct3b_get_panel_rev,
 	.read_id = exynos_panel_read_ddic_id,
 };
