@@ -1,13 +1,67 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Comet PMIC settings
+ * comet pmic device tree source
  *
- * Copyright 2022 Google LLC.
+ * Copyright 2023 Google LLC.
  *
  */
 
+/* Display: inner display vddi-supply voltage */
+&m_ldo24_reg {
+	regulator-boot-on;
+	regulator-min-microvolt = <1850000>;
+	regulator-max-microvolt = <1850000>;
+	schematic-name = "L24M_INNER_DISP_VDDI";
+	subsys-name = "Display";
+};
+
+/* Display: inner display vci-supply voltage */
+&m_ldo14_reg {
+	regulator-boot-on;
+	/delete-property/ regulator-always-on;
+	regulator-min-microvolt = <3000000>;
+	regulator-max-microvolt = <3000000>;
+	schematic-name = "L14M_INNER_DISP_VCI";
+	subsys-name = "Display";
+};
+
+/* Display: inner display vddr-supply voltage */
+&disp_vddr_0 {
+	status = "okay";
+	gpio = <&gpp21 4 GPIO_ACTIVE_HIGH>;
+	schematic-name = "INNER_DISP_VDDR";
+	subsys-name = "Display";
+};
+
+/* Display: outer display vddi-supply voltage */
+&s_ldo29_reg {
+	regulator-boot-on;
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <1800000>;
+	schematic-name = "L29S_OUTER_DISP_VDDI";
+	subsys-name = "Display";
+};
+
+/* Display: outer display vci-supply voltage */
+&s_ldo8_reg {
+	regulator-boot-on;
+	/delete-property/ regulator-always-on;
+	regulator-min-microvolt = <3000000>;
+	regulator-max-microvolt = <3000000>;
+	schematic-name = "L8S_OUTER_DISP_VCI";
+	subsys-name = "Display";
+};
+
+/* Display: outer display vddd-supply voltage */
+&disp_vddd {
+	status = "okay";
+	gpio = <&s2mpg14_gpio 3 GPIO_ACTIVE_HIGH>;
+	schematic-name = "OUTER_DISP_VDDD";
+	subsys-name = "Display";
+};
+
 &m_ldo4_reg {
-	schematic-name = "L4M_TS_AVDD";
+	schematic-name = "L4M_INNER_TS_AVDD";
 	subsys-name = "TS";
 };
 
@@ -16,14 +70,72 @@
 	subsys-name = "LDO";
 };
 
+&m_ldo7_reg {
+	schematic-name = "L7M_SPARE";
+	subsys-name = "Spare";
+};
+
+&m_ldo8_reg {
+	schematic-name = "L8M_USB";
+};
+
+&m_ldo9_reg {
+	schematic-name = "L9M_USB";
+};
+
+&m_ldo12_reg {
+	schematic-name = "L12M_SPARE";
+	subsys-name = "Spare";
+};
+
+&m_ldo15_reg {
+	schematic-name = "L15M_SPARE";
+	subsys-name = "Spare";
+};
+
+&m_ldo19_reg {
+	schematic-name = "L19M_EUSB2";
+};
+
 &m_ldo22_reg {
-	schematic-name = "L22M_DISP";
-	subsys-name = "Display";
+	schematic-name = "L22M_SPARE";
+	subsys-name = "Spare";
+};
+
+&m_ldo23_reg {
+	schematic-name = "L23M_SPARE";
+	subsys-name = "Spare";
 };
 
 &m_ldo25_reg {
-	schematic-name = "L25M_TSP_DVDD";
+	schematic-name = "L25M_INNER_TS_DVDD";
 	subsys-name = "TS";
+};
+
+&m_ext4_rail {
+	schematic-name = "VBATT_ODPM";
+	shunt-res-uohms = <5000>;
+	subsys-name = "BATT";
+};
+
+/* Replace L15M_SPARE with S9M_VDD_CPUCL0_M */
+&ch9 {
+	rail-name = "BUCK9M";
+};
+
+/* Replace S9M_VDD_CPUCL0_M with PPVAR_VBATT_MW */
+&ch10 {
+	rail-name = "VSEN_C1";
+};
+
+&s_ldo4_reg {
+	schematic-name = "L4S_SPARE";
+	subsys-name = "Spare";
+};
+
+&s_ldo6_reg {
+	schematic-name = "L6S_SPARE";
+	subsys-name = "Spare";
 };
 
 &s_ldo7_reg {
@@ -36,9 +148,33 @@
 	subsys-name = "Camera";
 };
 
+&s_ldo13_reg {
+	schematic-name = "L13S_MMC_CARD";
+	subsys-name = "Multimedia";
+};
+
+&s_ldo14_reg {
+	schematic-name = "L14S_SPARE";
+	subsys-name = "Spare";
+};
+
 &s_ldo15_reg {
-	schematic-name = "L15S_UDFPS_AVDD";
-	subsys-name = "FPS";
+	schematic-name = "L15S_FPS";
+};
+
+&s_ldo16_reg {
+	schematic-name = "L16S_UWB";
+	subsys-name = "UWB";
+};
+
+&s_ldo17_reg {
+	schematic-name = "L17S_UWB";
+	subsys-name = "UWB";
+};
+
+&s_ldo18_reg {
+	schematic-name = "L18S_SPARE";
+	subsys-name = "Spare";
 };
 
 &s_ldo20_reg {
@@ -46,19 +182,34 @@
 	subsys-name = "DMIC";
 };
 
+&s_ldo22_reg {
+	schematic-name = "L22S_SPARE";
+	subsys-name = "Spare";
+};
+
+&s_ldo23_reg {
+	schematic-name = "L23S_SPARE";
+	subsys-name = "Spare";
+};
+
+&s_ldo25_reg {
+	schematic-name = "L25S_OUTER_TS_AVDD";
+	subsys-name = "TS";
+};
+
 &s_ldo26_reg {
 	schematic-name = "L26S_LDAF";
 	subsys-name = "Camera";
 };
 
-&m_ext4_rail {
-	schematic-name = "VSYS_PWR_VBATT";
-	shunt-res-uohms = <5000>;
-	subsys-name = "BATT";
+&s_ldo27_reg {
+	schematic-name = "L27S_OUTER_TS_DVDD";
+	subsys-name = "TS";
 };
 
-&m_ext5_rail {
-	shunt-res-uohms = <10000>;
+&s_ldo28_reg {
+	schematic-name = "L28S_SPARE";
+	subsys-name = "Spare";
 };
 
 &s_ext4_rail {
@@ -73,108 +224,7 @@
 	subsys-name = "WLAN-BT";
 };
 
-&s_ext6_rail {
-	shunt-res-uohms = <10000>;
-};
-
-// Spare LDOs
-&m_ldo12_reg {
-	schematic-name = "L12M_SPARE";
-	subsys-name = "Spare";
-};
-
-&m_ldo15_reg {
-	schematic-name = "L15M_SPARE";
-	subsys-name = "Spare";
-};
-
-&m_ldo23_reg {
-	schematic-name = "L23M_SPARE";
-	subsys-name = "Spare";
-};
-
-&m_ldo24_reg {
-	schematic-name = "L24M_SPARE";
-	subsys-name = "Spare";
-};
-
-&s_ldo4_reg {
-	schematic-name = "L4S_SPARE";
-	subsys-name = "Spare";
-};
-
-&s_ldo6_reg {
-	schematic-name = "L6S_SPARE";
-	subsys-name = "Spare";
-};
-
-&s_ldo8_reg {
-	schematic-name = "L8S_SPARE";
-	subsys-name = "Spare";
-};
-
-&s_ldo13_reg {
-	schematic-name = "L13S_SPARE";
-	subsys-name = "Spare";
-};
-
-&s_ldo14_reg {
-	schematic-name = "L14S_SPARE";
-	subsys-name = "Spare";
-};
-
-&s_ldo18_reg {
-	schematic-name = "L18S_SPARE";
-	subsys-name = "Spare";
-};
-
-&s_ldo22_reg {
-	schematic-name = "L22S_SPARE";
-	subsys-name = "Spare";
-};
-
-&s_ldo23_reg {
-	schematic-name = "L23S_SPARE";
-	subsys-name = "Spare";
-};
-
-&s_ldo25_reg {
-	schematic-name = "L25S_SPARE";
-	subsys-name = "Spare";
-};
-
-&s_ldo27_reg {
-	schematic-name = "L27S_SPARE";
-	subsys-name = "Spare";
-};
-
-&s_ldo28_reg {
-	schematic-name = "L28S_SPARE";
-	subsys-name = "Spare";
-};
-
-&s_ldo29_reg {
-	schematic-name = "L29S_SPARE";
-	subsys-name = "Spare";
-};
-
-/* replace L15M_SPARE to L22M_DISP */
-&ch9 {
-	rail-name = "LDO22M";
-};
-
-/* replace L29S_SPARE to L21S_VDD2L_MEM */
+/* Replace L29S_OUTER_DISP_VDDI to L21S_VDD2L_MEM */
 &ch21 {
 	rail-name = "LDO21S";
-};
-
-// Spare LDOs
-&s_ldo16_reg {
-	schematic-name = "L16S_SPARE";
-	subsys-name = "Spare";
-};
-
-&s_ldo17_reg {
-	schematic-name = "L17S_SPARE";
-	subsys-name = "Spare";
 };

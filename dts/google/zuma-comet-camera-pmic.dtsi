@@ -2,13 +2,13 @@
 /*
  * zuma camera PMIC device tree for comet
  *
- * Copyright 2022 Google LLC.
+ * Copyright 2023 Google LLC.
  *
  */
 
 #include <dt-bindings/pinctrl/samsung.h>
 
-&hsi2c_14 {
+&hsi2c_9 {
 	/* SLG51002 */
 	status = "okay";
 	#address-cells = <1>;
@@ -17,7 +17,7 @@
 		compatible = "dlg,slg51002";
 		reg = <0x75>;
 		status = "ok";
-		dlg,buck-gpios = <&s2mpg15_gpio 3 GPIO_ACTIVE_HIGH>;
+		dlg,buck-gpios = <&s2mpg14_gpio 0 GPIO_ACTIVE_HIGH>;
 		dlg,bb-gpios = <&s2mpg15_gpio 1 GPIO_ACTIVE_HIGH>;
 		dlg,cs-gpios = <&s2mpg15_gpio 0 GPIO_ACTIVE_HIGH>;
 		dlg,reg-init-cells = <2>;
@@ -105,5 +105,14 @@
 
 		slg51002_pinctrl: slg51002_pinctrl {
 		};
+	};
+
+	rt6160: rt6160@77 {
+		compatible = "richtek,rt6160";
+		reg = <0x77>;
+		status = "ok";
+		regulator-name = "rt6160-buckboost";
+		regulator-min-microvolt = <3200000>;
+		regulator-max-microvolt = <3200000>;
 	};
 };

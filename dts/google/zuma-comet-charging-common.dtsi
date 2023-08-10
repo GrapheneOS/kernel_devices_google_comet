@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Zuma24 Battery device tree entries
+ *
+ * Copyright 2023 Google LLC
+ *
+ */
+#include "google-dts-base/zuma-charging.dtsi"
+
+&pinctrl_0 {
+
+	dc_charger_irq: dc-charger-irq {
+		samsung,pins = "gpa7-4"; /* XEINT_18 (PLC_INT_L) */
+		samsung,pin-function = <EXYNOS_PIN_FUNC_EINT>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_UP>;
+	};
+};
+
+&hsi2c_10 {
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+	clock-frequency = <400000>;
+
+	#include "google-dts-base/zuma-charge-pumps.dtsi"
+};
+
+&google_cpm {
+	google,max77779_chg = <&max77779_chg>;
+};

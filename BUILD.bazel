@@ -1,51 +1,48 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-load("//aosp-staging:modules.bzl", "COMMON_GKI_MODULES_LIST")
+load("@bazel_skylib//lib:paths.bzl", "paths")
+load("@bazel_skylib//rules:write_file.bzl", "write_file")
+load("//aosp:modules.bzl", "COMMON_GKI_MODULES_LIST")
 load("//build/bazel_common_rules/dist:dist.bzl", "copy_to_dist_dir")
 load("//build/kernel/kleaf:constants.bzl", "aarch64_outs")
 load(
     "//build/kernel/kleaf:kernel.bzl",
     "kernel_abi",
-    "kernel_abi_dist",
     "kernel_build",
     "kernel_images",
-    "kernel_module",
     "kernel_module_group",
     "kernel_modules_install",
     "kernel_unstripped_modules_archive",
     "merged_kernel_uapi_headers",
 )
+load("//build/kernel/kleaf/impl:gki_artifacts.bzl", "gki_artifacts")
 load(
     "//private/google-modules/soc/gs:device_build_configs.bzl",
     "device_build_configs",
+    "extracted_system_dlkm",
+    "lto_dependant_kernel_module",
 )
 
-# TODO: make this configurable to allow switching between aosp/ and
-# aosp-staging/
-_GKI_KERNEL_DIR = "aosp-staging"
-
-_GKI_BUILD_CONFIG_FRAGMENT = "//private/devices/google/comet:build.config.comet.gki.fragment"
+_GKI_AARCH64_MAKE_GOALS = [
+    "Image",
+    "Image.lz4",
+    "Image.gz",
+    "modules",
+]
 
 device_build_configs(
     name = "build.config.comet",
     base_build_config = ":build.config.comet",
     device_name = "comet",
-    gki_build_config_fragment = _GKI_BUILD_CONFIG_FRAGMENT,
-    gki_kernel_dir = _GKI_KERNEL_DIR,
-    staging_kernel = True,
 )
 
-# TODO(b/221278445): Use real GKI. Delete the comet_gki targets.
-# Note: comet_gki and comet_X all writes to comet_gki_defconfig,
-# which prevents them to be built without sandboxes (--config=local) in
-# parallel. This will be fixed by b/229309039.
 kernel_build(
     name = "comet_gki",
     srcs = glob([
-        "comet*.fragment",
         "build.config.*",
+        "comet*.fragment",
     ]) + [
-        "//{}:kernel_aarch64_sources".format(_GKI_KERNEL_DIR),
+        "//aosp-staging:kernel_aarch64_sources",
         "//private/google-modules/soc/gs:build.config.slider.blktest",
         "//private/google-modules/soc/gs:build.config.slider.debug_api",
         "//private/google-modules/soc/gs:build.config.slider.debug_kmemleak",
@@ -56,6 +53,7 @@ kernel_build(
         "//private/google-modules/soc/gs:build.config.slider.khwasan",
     ],
     outs = aarch64_outs,
+    additional_kmi_symbol_lists = ["//aosp-staging:android/abi_gki_aarch64_pixel"],
     build_config = ":gki_build_config",
     collect_unstripped_modules = True,
     # For building system_dlkm (b/241855743)
@@ -65,8 +63,12 @@ kernel_build(
         "certs/signing_key.pem",
         "certs/signing_key.x509",
     ],
+    kmi_symbol_list = "//aosp-staging:android/abi_gki_aarch64",
+    kmi_symbol_list_strict_mode = False,
+    make_goals = _GKI_AARCH64_MAKE_GOALS,
     module_implicit_outs = COMMON_GKI_MODULES_LIST,
     strip_modules = True,
+    trim_nonlisted_kmi = True,
 )
 
 kernel_modules_install(
@@ -82,65 +84,124 @@ kernel_images(
     kernel_modules_install = "comet_gki_modules_install",
 )
 
-_SOC_REVS = [
+gki_artifacts(
+    name = "comet_gki_artifacts",
+    arch = "arm64",
+    boot_img_sizes = {
+        # Assume BUILD_GKI_BOOT_IMG_SIZE is the following
+        "": "67108864",
+        # Assume BUILD_GKI_BOOT_IMG_LZ4_SIZE is the following
+        "lz4": "53477376",
+        # Assume BUILD_GKI_BOOT_IMG_GZ_SIZE is the following
+        "gz": "47185920",
+    },
+    kernel_build = "comet_gki",
+)
+
+filegroup(
+    name = "gki_aarch64_boot_lz4",
+    srcs = select({
+        "//private/google-modules/soc/gs:gki_aosp": ["//aosp:kernel_aarch64_gki_artifacts_download_or_build"],
+        "//private/google-modules/soc/gs:gki_aosp_staging": [":comet_gki_artifacts"],
+    }),
+)
+
+# TODO(b/285605996): Use hermetic_genrule
+genrule(
+    name = "gki_aarch64_boot",
+    srcs = [":gki_aarch64_boot_lz4"],
+    outs = ["boot.img"],
+    cmd = """
+        for f in $(locations :gki_aarch64_boot_lz4); do
+            if [[ "$${f##*/}" == "boot-lz4.img" ]]; then
+                $(location //build/kernel:hermetic-tools/mv) $$f $(location boot.img)
+                break
+            fi
+        done
+    """,
+    tools = ["//build/kernel:hermetic-tools/mv"],
+)
+
+_PIXEL_MAKE_GOALS = [
+    "modules",
+    "dtbs",
+]
+
+ZUMA_SOC_REVS = [
     "a0-foplp",
     "a0-ipop",
     "b0-foplp",
     "b0-ipop",
 ]
 
-_COMET_DTBOS = [
+ZUMAPRO_SOC_REVS = [
+    "a0-foplp",
+    "a0-ipop",
+]
+
+_ZUMA_COMET_DTBOS = [
     # Sync with build.config.comet
     "google/zuma-comet-dev1.dtbo",
+    "google/zuma-comet-proto1-samsung-gnss.dtbo",
+    "google/zuma-comet-proto1-broadcom-gnss.dtbo",
+    "google/zuma-comet-proto1_1-samsung-gnss.dtbo",
+    "google/zuma-comet-proto1_1-broadcom-gnss.dtbo",
+    "google/zuma-comet-proto1_1-samsung-gnss-wingboard.dtbo",
 ]
 
 kernel_module_group(
     name = "comet_ext_modules",
     srcs = [
         # keep sorted
-        "//private/devices/google/comet:zuma_soc.comet",
+        "//private/devices/google/comet:zumapro_soc.comet",
         "//private/devices/google/comet/display:drm_panel.google",
         "//private/google-modules/amplifiers/audiometrics",
         "//private/google-modules/amplifiers/cs35l41",
         "//private/google-modules/amplifiers/cs40l26",
-        "//private/google-modules/amplifiers/tas256x",
         "//private/google-modules/aoc",
         "//private/google-modules/aoc/alsa",
         "//private/google-modules/aoc/usb:aoc.usb",
         "//private/google-modules/bluetooth/broadcom:bluetooth.broadcom",
         "//private/google-modules/bms",
         "//private/google-modules/bms/misc:bms-misc",
-        "//private/google-modules/display:display.samsung",
+        "//private/google-modules/display/samsung:display.samsung",
         "//private/google-modules/edgetpu/rio/drivers/edgetpu:edgetpu.rio",
+        "//private/google-modules/fingerprint/fpc",
+        "//private/google-modules/fingerprint/qcom/qfs4008:qbt_handler",
         "//private/google-modules/gps/broadcom/bcm47765",
         "//private/google-modules/gpu/mali_kbase",
         "//private/google-modules/gpu/mali_pixel",
         "//private/google-modules/gxp/zuma:gxp",
+        "//private/google-modules/hdcp/samsung:hdcp.samsung",
         "//private/google-modules/lwis",
         "//private/google-modules/nfc",
+        "//private/google-modules/power/mitigation:bcl",
         "//private/google-modules/power/reset",
+        "//private/google-modules/sensors/hall_sensor",
         "//private/google-modules/touch/common:touch.common",
         "//private/google-modules/touch/fts/ftm5",
         "//private/google-modules/touch/goodix",
         "//private/google-modules/touch/sec",
-        # TODO: need to conditionally include this based on if the project is
-        # sync'd
+        "//private/google-modules/touch/synaptics:syna_touch",
+        "//private/google-modules/trusty",
         "//private/google-modules/uwb:uwb.qm35",
         "//private/google-modules/video/gchips:video.gchips",
-        "//private/google-modules/wlan/bcm4383:bcmdhd4383",
+        "//private/google-modules/wlan/bcm4390:bcmdhd4390",
+        "//private/google-modules/wlan/bcm4398:bcmdhd4398",
+        "//private/google-modules/wlan/wlan_ptracker",
     ],
 )
 
 kernel_build(
-    name = "zuma_comet",
+    name = "zumapro_comet",
     srcs = glob([
-        "comet*.fragment",
         "build.config.*",
         "dts/**",
+        "comet*.fragment",
     ]) + [
         # keep sorted
-        "//{}:kernel_aarch64_sources".format(_GKI_KERNEL_DIR),
         "//private/google-modules/bms/misc:bms-misc.kconfig",
+        "//private/google-modules/power/mitigation:bcl.kconfig",
         "//private/google-modules/power/reset:reset.kconfig",
         "//private/google-modules/soc/gs:build.config.slider.blktest",
         "//private/google-modules/soc/gs:build.config.slider.debug_api",
@@ -150,62 +211,77 @@ kernel_build(
         "//private/google-modules/soc/gs:build.config.slider.debug_memory_accounting",
         "//private/google-modules/soc/gs:build.config.slider.kasan",
         "//private/google-modules/soc/gs:build.config.slider.khwasan",
-        "//private/google-modules/soc/gs:build.config.zuma",
+        "//private/google-modules/soc/gs:build.config.zumapro",
         "//private/google-modules/soc/gs:gs_soc.kconfig",
         "//private/google-modules/touch/common:touch.common.kconfig",
         "//private/google-modules/touch/fts/ftm5:ftm5.kconfig",
         "//private/google-modules/touch/sec:sec.kconfig",
-    ],
+        "//private/google-modules/trusty:trusty.kconfig",
+        "//private/google-modules/wlan/wlan_ptracker:wlan_ptracker.kconfig",
+    ] + select({
+        "//private/google-modules/soc/gs:gki_aosp": ["//aosp:kernel_aarch64_sources"],
+        "//private/google-modules/soc/gs:gki_aosp_staging": ["//aosp-staging:kernel_aarch64_sources"],
+    }),
     outs = [
-        "google-dts-base/zuma-{}.dtb".format(soc_rev)
-        for soc_rev in _SOC_REVS
-    ],
+        "google/google-dts-base/zuma-{}.dtb".format(soc_rev)
+        for soc_rev in ZUMA_SOC_REVS
+    ] + _ZUMA_COMET_DTBOS,
     # TODO(b/221278445): Use real GKI
-    # base_kernel = "//{}:kernel_aarch64".format(_GKI_KERNEL_DIR),
-    base_kernel = ":comet_gki",
+    base_kernel = select({
+        "//private/google-modules/soc/gs:gki_aosp": "//aosp:kernel_aarch64_download_or_build",
+        "//private/google-modules/soc/gs:gki_aosp_staging": ":comet_gki",
+    }),
     build_config = ":device_build_config",
     collect_unstripped_modules = True,
     dtstree = "//private/devices/google/comet/dts:comet.dt",
-    implicit_outs = _COMET_DTBOS,
     kconfig_ext = "//private/google-modules/soc/gs:Kconfig.ext",
-    kmi_symbol_list = "//{}:android/abi_gki_aarch64_pixel".format(_GKI_KERNEL_DIR),
+    kmi_symbol_list = select({
+        "//private/google-modules/soc/gs:gki_aosp": "//aosp:android/abi_gki_aarch64_pixel",
+        "//private/google-modules/soc/gs:gki_aosp_staging": "//aosp-staging:android/abi_gki_aarch64_pixel",
+    }),
+    make_goals = _PIXEL_MAKE_GOALS,
     module_outs = [
         # keep sorted
         "drivers/i2c/i2c-dev.ko",
         "drivers/misc/eeprom/at24.ko",
         "drivers/misc/open-dice.ko",
+        "drivers/perf/arm-cmn.ko",
         "drivers/perf/arm_dsu_pmu.ko",
         "drivers/scsi/sg.ko",
         "drivers/spi/spidev.ko",
         "drivers/watchdog/softdog.ko",
+        "net/mac80211/mac80211.ko",
+        "net/wireless/cfg80211.ko",
     ],
     strip_modules = True,
 )
 
 kernel_abi(
-    name = "zuma_comet_abi",
-    kernel_build = ":zuma_comet",
+    name = "zumapro_comet_abi",
+    kernel_build = ":zumapro_comet",
     kernel_modules = [":comet_ext_modules"],
     kmi_symbol_list_add_only = True,
     module_grouping = False,
 )
 
-kernel_module(
-    name = "zuma_soc.comet",
+lto_dependant_kernel_module(
+    name = "zumapro_soc.comet",
     srcs = [
         "//private/google-modules/soc/gs:gs_soc_sources",
     ],
     outs = [
         # keep sorted
-        "drivers/block/zram/zcomp_cpu.ko",
-        "drivers/block/zram/zcomp_eh.ko",
-        "drivers/block/zram/zram_gs.ko",
+        # "drivers/block/zram/zcomp_cpu.ko",
+        # "drivers/block/zram/zcomp_eh.ko",
+        # "drivers/block/zram/zram_gs.ko",
         "drivers/bts/bts.ko",
         "drivers/clk/gs/clk_exynos_gs.ko",
         "drivers/clocksource/exynos_mct_v3.ko",
         "drivers/cpufreq/exynos-acme.ko",
         "drivers/devfreq/google/arm-memlat-mon.ko",
+        "drivers/devfreq/google/dsulat-devfreq.ko",
         "drivers/devfreq/google/exynos_devfreq.ko",
+        "drivers/devfreq/google/governor_dsulat.ko",
         "drivers/devfreq/google/governor_memlat.ko",
         "drivers/devfreq/google/memlat-devfreq.ko",
         "drivers/dma-buf/heaps/samsung/samsung_dma_heap.ko",
@@ -242,12 +318,14 @@ kernel_module(
         "drivers/pinctrl/pinctrl-slg51002.ko",
         "drivers/power/reset/debug-reboot.ko",
         "drivers/regulator/pmic_class.ko",
+        "drivers/regulator/rt6160-regulator.ko",
         "drivers/regulator/s2mpg14-powermeter.ko",
         "drivers/regulator/s2mpg14-regulator.ko",
         "drivers/regulator/s2mpg15-powermeter.ko",
         "drivers/regulator/s2mpg15-regulator.ko",
         "drivers/regulator/slg51002-regulator.ko",
         "drivers/rtc/rtc-s2mpg14.ko",
+        "drivers/soc/google/acpm/acpm_flexpmu_dbg.ko",
         "drivers/soc/google/acpm/acpm_mbox_test.ko",
         "drivers/soc/google/acpm/gs_acpm.ko",
         "drivers/soc/google/acpm/power_stats.ko",
@@ -258,17 +336,21 @@ kernel_module(
         "drivers/soc/google/cpif/cpif_page.ko",
         "drivers/soc/google/cpif/shm_ipc.ko",
         "drivers/soc/google/dbgcore-dump.ko",
+        "drivers/soc/google/debug/bookerci.ko",
         "drivers/soc/google/debug/debug-snapshot-debug-kinfo.ko",
         "drivers/soc/google/debug/dss.ko",
         "drivers/soc/google/debug/ehld.ko",
         "drivers/soc/google/debug/exynos-adv-tracer.ko",
         "drivers/soc/google/debug/exynos-adv-tracer-s2d.ko",
         "drivers/soc/google/debug/exynos-coresight.ko",
+        "drivers/soc/google/debug/exynos-coresight-etm.ko",
         "drivers/soc/google/debug/exynos-debug-test.ko",
         "drivers/soc/google/debug/exynos-ecc-handler.ko",
         "drivers/soc/google/debug/itmon.ko",
         "drivers/soc/google/debug/pixel-boot-metrics.ko",
         "drivers/soc/google/debug/pixel-debug-test.ko",
+        "drivers/soc/google/debug/pixel-suspend-diag.ko",
+        "drivers/soc/google/debug/sjtag-driver.ko",
         "drivers/soc/google/ect_parser.ko",
         "drivers/soc/google/eh/eh.ko",
         "drivers/soc/google/exynos-bcm_dbg-dump.ko",
@@ -278,38 +360,40 @@ kernel_module(
         "drivers/soc/google/exynos-pd.ko",
         "drivers/soc/google/exynos-pd-dbg.ko",
         "drivers/soc/google/exynos-pd_el3.ko",
+        "drivers/soc/google/exynos-pm.ko",
         "drivers/soc/google/exynos-pmu-if.ko",
         "drivers/soc/google/exynos-seclog.ko",
         "drivers/soc/google/exynos_pm_qos.ko",
+        "drivers/soc/google/gnssif_spi/gnss_spi.ko",
+        "drivers/soc/google/gnssif_spi/gnssif.ko",
+        # "drivers/soc/google/gcma/gcma.ko",
         "drivers/soc/google/gs-chipid.ko",
         "drivers/soc/google/gsa/gsa.ko",
         "drivers/soc/google/gsa/gsa_gsc.ko",
         "drivers/soc/google/hardlockup-debug.ko",
         "drivers/soc/google/hardlockup-watchdog.ko",
-        "drivers/soc/google/pkvm-s2mpu/pkvm-s2mpu.ko",
+        "drivers/soc/google/perf_trace_counters.ko",
+        # "drivers/soc/google/pixel_stat/mm/pixel_stat_mm.ko",
+        # "drivers/soc/google/pixel_stat/pixel_stat_sysfs.ko",
+        "drivers/soc/google/pkvm-s2mpu/pkvm-s2mpu-v9/pkvm-s2mpu-v9.ko",
         "drivers/soc/google/pt/slc_acpm.ko",
         "drivers/soc/google/pt/slc_dummy.ko",
         "drivers/soc/google/pt/slc_pmon.ko",
         "drivers/soc/google/pt/slc_pt.ko",
-        "drivers/soc/google/vh/kernel/cgroup/vh_cgroup.ko",
-        "drivers/soc/google/vh/kernel/pixel_em/pixel_em.ko",
-        "drivers/soc/google/vh/kernel/sched/sched_tp.ko",
-        "drivers/soc/google/vh/kernel/sched/vh_preemptirq_long.ko",
-        "drivers/soc/google/vh/kernel/sched/vh_sched.ko",
+        # "drivers/soc/google/vh/kernel/cgroup/vh_cgroup.ko",
+        # "drivers/soc/google/vh/kernel/metrics/pixel_metrics.ko",
+        # "drivers/soc/google/vh/kernel/mm/vh_mm.ko",
+        # "drivers/soc/google/vh/kernel/pixel_em/pixel_em.ko",
+        # "drivers/soc/google/vh/kernel/sched/sched_tp.ko",
+        # "drivers/soc/google/vh/kernel/sched/vh_preemptirq_long.ko",
+        # "drivers/soc/google/vh/kernel/sched/vh_sched.ko",
         "drivers/soc/google/vh/kernel/systrace.ko",
-        "drivers/soc/google/vh/kernel/thermal/vh_thermal.ko",
+        # "drivers/soc/google/vh/kernel/thermal/vh_thermal.ko",
         "drivers/spi/spi-s3c64xx.ko",
         "drivers/spmi/spmi_bit_bang.ko",
-        "drivers/thermal/google/google_bcl.ko",
         "drivers/thermal/google/s2mpg15_spmic_thermal.ko",
         "drivers/thermal/samsung/gpu_cooling.ko",
         "drivers/thermal/samsung/gs_thermal.ko",
-        "drivers/trusty/trusty-core.ko",
-        "drivers/trusty/trusty-ipc.ko",
-        "drivers/trusty/trusty-irq.ko",
-        "drivers/trusty/trusty-log.ko",
-        "drivers/trusty/trusty-test.ko",
-        "drivers/trusty/trusty-virtio.ko",
         "drivers/tty/serial/exynos_tty.ko",
         "drivers/ufs/ufs-exynos-gs.ko",
         "drivers/usb/dwc3/dwc3-exynos-usb.ko",
@@ -326,6 +410,9 @@ kernel_module(
         "drivers/watchdog/s3c2410_wdt.ko",
     ],
     kernel_build = "//private/google-modules/soc/gs:gs_kernel_build",
+    lto_outs = [
+        "drivers/ufs/ufs-pixel-fips140.ko",
+    ],
     makefile = ["//private/google-modules/soc/gs:Makefile"],
     visibility = [
         # keep sorted
@@ -334,140 +421,159 @@ kernel_module(
     ],
     deps = [
         "//private/google-modules/bms/misc:bms-misc",
+        "//private/google-modules/trusty",
     ],
 )
 
 kernel_modules_install(
-    name = "zuma_comet_modules_install",
-    kernel_build = ":zuma_comet",
+    name = "zumapro_comet_modules_install",
+    kernel_build = ":zumapro_comet",
     kernel_modules = [":comet_ext_modules"],
 )
 
 merged_kernel_uapi_headers(
-    name = "zuma_comet_merged_uapi_headers",
-    kernel_build = ":zuma_comet",
+    name = "zumapro_comet_merged_uapi_headers",
+    kernel_build = ":zumapro_comet",
     kernel_modules = [":comet_ext_modules"],
 )
 
 kernel_unstripped_modules_archive(
-    name = "zuma_comet_unstripped_modules_archive",
-    kernel_build = ":zuma_comet",
+    name = "zumapro_comet_unstripped_modules_archive",
+    kernel_build = ":zumapro_comet",
     kernel_modules = [":comet_ext_modules"],
 )
 
+# TODO(b/285605996): Use hermetic_genrule
 genrule(
     name = "vendor_kernel_boot_modules.comet-cat",
     srcs = [
         "vendor_kernel_boot_modules.comet",
         "//build/kernel:hermetic-tools/cat",
-        "//private/google-modules/soc/gs:vendor_kernel_boot_modules.zuma",
+        "//private/google-modules/soc/gs:vendor_kernel_boot_modules.zumapro",
     ],
     outs = [
         "vendor_kernel_boot_modules.concat",
     ],
-    # TODO(b/259274243): switch to using the hermetic-tools cat binary
     cmd = """
         cat $(location vendor_kernel_boot_modules.comet) \\
-            $(location //private/google-modules/soc/gs:vendor_kernel_boot_modules.zuma) \\
+            $(location //private/google-modules/soc/gs:vendor_kernel_boot_modules.zumapro) \\
             > $@
     """,
     tools = ["//build/kernel:hermetic-tools/cat"],
 )
 
+# Don't load the zram GKI module
+_GKI_MODULES = [m for m in COMMON_GKI_MODULES_LIST if not m.endswith("zram.ko")]
+
+write_file(
+    name = "system_dlkm_modules_list",
+    out = "system_dlkm_modules_list.comet",
+    content = _GKI_MODULES,
+)
+
 kernel_images(
-    name = "zuma_comet_images",
-    build_boot = True,
+    name = "zumapro_comet_images",
+    base_kernel_images = select({
+        "//private/google-modules/soc/gs:gki_aosp": "//aosp:kernel_aarch64_images_download_or_build",
+        "//private/google-modules/soc/gs:gki_aosp_staging": ":comet_gki_images",
+    }),
+    boot_image_outs = ["dtb.img"],
+    build_boot = False,
     build_dtbo = True,
     build_initramfs = True,
+    build_system_dlkm = True,
     build_vendor_dlkm = True,
     build_vendor_kernel_boot = True,
-    dtbo_srcs = [":zuma_comet/" + file for file in _COMET_DTBOS],
-    kernel_build = ":zuma_comet",
-    kernel_modules_install = ":zuma_comet_modules_install",
+    dedup_dlkm_modules = True,
+    dtbo_srcs = [":zumapro_comet/" + file for file in _ZUMA_COMET_DTBOS],
+    kernel_build = ":zumapro_comet",
+    kernel_modules_install = ":zumapro_comet_modules_install",
     # Keep the following in sync with build.config.comet:
     modules_list = ":vendor_kernel_boot_modules.comet-cat",
-    vendor_dlkm_modules_blocklist = "//private/google-modules/soc/gs:vendor_dlkm.blocklist.zuma",
+    system_dlkm_modules_list = ":system_dlkm_modules_list",
+    system_dlkm_props = "//private/google-modules/soc/gs:system_dlkm.props.zuma",
+    vendor_dlkm_etc_files = ["//private/devices/google/comet:insmod_cfgs"],
+    vendor_dlkm_modules_blocklist = "//private/google-modules/soc/gs:vendor_dlkm.blocklist.zumapro",
     # No MODULES_BLOCKLIST
-    vendor_dlkm_modules_list = "//private/google-modules/soc/gs:vendor_dlkm_modules.zuma",
-    vendor_dlkm_props = "//private/google-modules/soc/gs:vendor_dlkm.props.zuma",
+    vendor_dlkm_modules_list = "//private/google-modules/soc/gs:vendor_dlkm_modules.zumapro",
+    vendor_dlkm_props = "//private/google-modules/soc/gs:vendor_dlkm.props.zumapro",
     deps = [
-        # Keep the following in sync with vendor_dlkm.props.zuma:
+        # Keep the following in sync with (vendor|system)_dlkm.props.zumapro:
         # selinux_fc
         "//prebuilts/boot-artifacts/selinux:file_contexts",
+        "//prebuilts/boot-artifacts/selinux:system_file_contexts",
     ],
+)
+
+filegroup(
+    name = "insmod_cfgs",
+    srcs = glob([
+        "insmod_cfg/*.cfg",
+    ]),
 )
 
 # TODO: support running ufdt_apply_overlay in a loop on each DTBO
 #genrule(
-#    name = "zuma_comet_ufdt_overlay",
+#    name = "zumapro_comet_ufdt_overlay",
 #    srcs = [
-#        ":zuma_comet/google/zuma-a0.dtb",
+#        ":zumapro_comet/google/zuma-a0.dtb",
 #        "//build/kernel:hermetic-tools/ufdt_apply_overlay",
-#    ] + [":zuma_comet/" + file for file in _COMET_DTBOS],
+#    ] + [":zumapro_comet/" + file for file in _ZUMAPRO_COMET_DTBOS],
 #    outs = [
-#        "zuma_comet-out.dtb",
+#        "zumapro_comet-out.dtb",
 #    ],
 #    cmd = """set -e
 #	for m in {comet_dtbos}; \\
 #	do \\
 #		$(location //build/kernel:hermetic-tools/ufdt_apply_overlay) \\
-#		    $(location :zuma_comet/google/zuma-a0.dtb)              \\
-#		    $(location :zuma_comet/$$m)         \\
-#		    $(location zuma_comet-$(basename $$m).dtb) \\
+#		    $(location :zumapro_comet/google/zuma-a0.dtb)              \\
+#		    $(location :zumapro_comet/$$m)         \\
+#		    $(location zumapro_comet-$(basename $$m).dtb) \\
 #	done
 #    """.format(
-#        comet_dtbos = " ".join(_COMET_DTBOS),
+#        comet_dtbos = " ".join(_ZUMAPRO_COMET_DTBOS),
 #    ),
 #)
 
-_GKI_MODULES = [
-    # keep sorted
-    ":comet_gki/lib/crypto/libarc4.ko",
-    ":comet_gki/mm/zsmalloc.ko",
-    ":comet_gki/net/mac80211/mac80211.ko",
-    ":comet_gki/net/rfkill/rfkill.ko",
-    ":comet_gki/net/wireless/cfg80211.ko",
-]
-
-_zuma_comet_dist_targets = [
-    # TODO(b/221278445) use real GKI; replace with //common:kernel_aarch64_additional_artifacts.
-    # This will include abi.xml, abi_symbollist and abi_symbollist.report.
-    ":comet_gki",
-    "comet_gki_headers",
-    "comet_gki_kmi_symbol_list",
-    "comet_gki_images",
-    "//build/kernel:gki_certification_tools",
-
+_zumapro_comet_dist_targets = [
     # Device-specific artifacts
-    ":zuma_comet",
-    ":zuma_comet_modules_install",
-    # At the time of writing (2022-02-04), this intentionally diverges from
-    # the behavior of build.sh-style mixed builds by also incorporating
-    # UAPI headers of external modules, while build.sh-style mixed builds
-    # always uses kernel-uapi-headers.tar.gz from GKI_DIST_DIR.
-    # To use (zuma-)GKI's kernel-uapi-headers.tar.gz in DIST_DIR, use
-    #     :zuma_gki_uapi_headers
-    # instead.
-    ":zuma_comet_merged_uapi_headers",
-    ":zuma_comet_images",
+    ":zumapro_comet",
+    ":zumapro_comet_modules_install",
+    ":zumapro_comet_merged_uapi_headers",
+    ":zumapro_comet_images",
+    ":gki_aarch64_boot",
     # TODO: support running ufdt_apply_overlay in a loop on each DTBO
-    #":zuma_comet_ufdt_overlay",
-    ":zuma_comet_unstripped_modules_archive",
-] + _GKI_MODULES
+    #":zumapro_comet_ufdt_overlay",
+    ":zumapro_comet_unstripped_modules_archive",
+    ":insmod_cfgs",
+    ":zuma_comet_extracted_system_dlkm",
+] + select({
+    "//private/google-modules/soc/gs:gki_aosp": [
+        "//aosp:android/abi_gki_aarch64_pixel",
+        "//aosp:kernel_aarch64_download_or_build",
+        "//aosp:kernel_aarch64_headers_download_or_build",
+    ],
+    "//private/google-modules/soc/gs:gki_aosp_staging": [
+        "comet_gki",
+        "comet_gki_headers",
+        "//aosp-staging:android/abi_gki_aarch64_pixel",
+        "//build/kernel:gki_certification_tools",
+    ],
+})
 
-copy_to_dist_dir(
-    name = "zuma_comet_dist",
-    data = _zuma_comet_dist_targets,
-    dist_dir = "out/comet/dist",
-    flat = True,
-    log = "info",
+extracted_system_dlkm(
+    name = "zuma_comet_extracted_system_dlkm",
+    gki_modules = [paths.basename(m) for m in _GKI_MODULES],
+    images = select({
+        "//private/google-modules/soc/gs:gki_aosp": "//aosp:kernel_aarch64_images_download_or_build",
+        "//private/google-modules/soc/gs:gki_aosp_staging": ":comet_gki_images",
+    }),
 )
 
-kernel_abi_dist(
-    name = "zuma_comet_abi_dist",
-    data = _zuma_comet_dist_targets,
+copy_to_dist_dir(
+    name = "zumapro_comet_dist",
+    data = _zumapro_comet_dist_targets,
     dist_dir = "out/comet/dist",
     flat = True,
-    kernel_abi = ":zuma_comet_abi",
     log = "info",
 )

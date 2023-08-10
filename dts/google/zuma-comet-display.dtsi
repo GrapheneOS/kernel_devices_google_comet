@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Display nodes for slider-related boards.
+ * comet display device tree source
  *
- * Copyright 2022 Google LLC
+ * Copyright 2023 Google LLC
  *
  */
 
@@ -10,12 +10,28 @@
 
 &dsim_modes {
 	dsim-modes {
-		1080x2400 {
-			mode-name = "1080x2400";
+		1072x2400 {
+			mode-name = "1072x2400";
 			pmsk = <
 				0x2 0xB3 0x2 0x5CAB /* p m s k */
 				>;
 			hs-clk = <1102>;
+			esc-clk = <20>;
+		};
+		2152x2076 {
+			mode-name = "2152x2076";
+			pmsk = <
+				0x2 0xDB 0x2 0x1355 /* p m s k */
+				>;
+			hs-clk = <1346>;
+			esc-clk = <20>;
+		};
+		1080x2424 {
+			mode-name = "1080x2424";
+			pmsk = <
+				0x2 0x8D 0x2 0xC9AB /* p m s k */
+				>;
+			hs-clk = <865>;
 			esc-clk = <20>;
 		};
 	};
@@ -25,32 +41,82 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	google_ak3a: panel@0 {
-		compatible = "google,ak3a";
-		label = "google-ak3a";
-		touch = <&spitouch>;
+	google_ct3b: panel@0 {
+		compatible = "google,ct3b";
+		label = "google-ct3b";
 		channel = <0>;
 
 		/* reset, power */
-		reset-gpios = <&gpa6 0 GPIO_ACTIVE_HIGH>;
-		vci-supply = <&m_ldo14_reg>;
-		vddi-supply = <&s_bucka_reg>;
+		reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
+		vddi-supply = <&s_ldo29_reg>;
+		vddd-supply = <&disp_vddd>;
+		vci-supply = <&s_ldo8_reg>;
 	};
-
 	panel@1 {
 		compatible = "samsung,emul";
 		label = "samsung-emul";
 		channel = <0>;
 
 		/* reset, power */
-		reset-gpios = <&gpa6 0 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
+	};
+	google_ct3c: panel@2 {
+		compatible = "google,ct3c";
+		label = "google-ct3c";
+		channel = <0>;
+
+		/* reset, power */
+		reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
+		vddi-supply = <&s_ldo29_reg>;
+		vddd-supply = <&disp_vddd>;
+		vci-supply = <&s_ldo8_reg>;
 	};
 };
 
 &drmdsim1 {
-	status = "disabled";
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	google_ct3a: panel@0 {
+		compatible = "google,ct3a";
+		label = "google-ct3a";
+		channel = <0>;
+		/* 0: normal, 1: bottom up, 2: left up, 3: right up */
+		orientation = <2>;
+
+		/* reset, power */
+		reset-gpios = <&gpp0 0 GPIO_ACTIVE_HIGH>;
+		vddi-supply = <&m_ldo24_reg>;
+		vddr-supply = <&disp_vddr_0>;
+		vci-supply = <&m_ldo14_reg>;
+	};
+	panel@1 {
+		compatible = "samsung,emul";
+		label = "samsung-emul";
+		channel = <0>;
+
+		/* reset, power */
+		reset-gpios = <&gpp0 0 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&s_ldo8_reg {
+	/delete-property/ regulator-always-on;
 };
 
 &m_ldo14_reg {
 	/delete-property/ regulator-always-on;
+};
+
+&drmdecon1 {
+	status = "okay";
+};
+
+&drmdp {
+	status = "okay";
+};
+
+&drmdecon2 {
+	status = "okay";
 };

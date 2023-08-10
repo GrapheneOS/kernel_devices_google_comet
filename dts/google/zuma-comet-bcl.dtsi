@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Google Zuma24 bcl device tree source
+ *
+ * Copyright (c) 2023 Google, LLC
+ *		https://www.google.com
+ */
+
+#include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-bcl.dtsi"
+
+&google_mitigation {
+	google,charger = <&max77779_chg>;
+	google,pmic = <&max77779_pmic>;
+	google,power-supply = <&max77779_fg>;
+	batoilo_lower = <1800>;
+	batoilo_upper = <8000>;
+	interrupt-parent = <&max77779_pmic_irq>;
+	interrupts = <6 IRQ_TYPE_LEVEL_LOW>;
+};
+
+&thermal_zones {
+	batoilo2 {
+		zone_name  = "BATOILO2";
+		polling-delay-passive = <THERMAL_DELAY_INIT_MS>;
+		polling-delay = <0>;
+		thermal-sensors = <&google_mitigation BATOILO2>;
+		trips {
+			batoilo2: batoilo2{
+				temperature = <BO_LIMIT>;
+				hysteresis = <THERMAL_HYST_LEVEL>;
+				type = "passive";
+			};
+		};
+	};
+
+};

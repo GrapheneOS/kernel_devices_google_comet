@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Usecases specific to Comet Proto platforms
+ *
+ * Copyright 2023 Google LLC
+ *
+ */
+
+/* system use cases */
+&max77779_chg {
+	max77779,usb_otg_wlc_rx_chgr_on_mode = /bits/ 8 <0xF>;
+	max77779,usb_otg_wlc_rx_chgr_off_mode = /bits/ 8 <0xE>;
+	max77779,usb_otg_mode = /bits/ 8 <0xA>;
+};

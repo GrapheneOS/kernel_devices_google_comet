@@ -2,13 +2,47 @@
 /*
  * comet audio device tree source
  *
- * Copyright 2022 Google LLC
+ * Copyright 2023 Google LLC
  */
 
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/pinctrl/samsung.h>
 //#include <dt-bindings/sound/google-aoc.h>
+
+/* DP audio */
+&aoc_dp_nohost_drv {
+	status = "disabled";
+};
+
+/* DP audio */
+&dai_fe_dp_dma_nohost_rx {
+	status = "disabled";
+};
+
+/* DP audio */
+&dai_be_dp_rx {
+	status = "disabled";
+	codec {
+		sound-dai = <&drmdp_adma_pb>;
+	};
+};
+
+/* DP audio */
+&dpado_mem {
+	status = "disabled";
+};
+
+/* DP audio */
+&drmdp_adma {
+	status = "disabled";
+	memory-region = <&dpado_mem>;
+};
+
+/* DP audio */
+&drmdp_adma_pb {
+	status = "disabled";
+};
 
 &dai_be_tdm0_rx {
 	codec {
@@ -56,15 +90,19 @@
 	};
 };
 
-/* GPIO_FAR_ALIVE */
-&pinctrl_2 {
-	cs35l41_1_irq: cs35l41-1-irq {
-		samsung,pins = "gpa5-2"; /* XEINT_2 */
+/* GPIO_ALIVE */
+&pinctrl_0 {
+	cs35l41_2_irq: cs35l41-2-irq {
+		samsung,pins = "gpa7-2"; /* XEINT_16 */
 		samsung,pin-function = <EXYNOS_PIN_FUNC_EINT>;
 		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
 	};
-	cs35l41_2_irq: cs35l41-2-irq {
-		samsung,pins = "gpa7-2"; /* XEINT_16 */
+};
+
+/* GPIO_FAR_ALIVE */
+&pinctrl_2 {
+	cs35l41_1_irq: cs35l41-1-irq {
+		samsung,pins = "gpa5-5"; /* XEINT_5 */
 		samsung,pin-function = <EXYNOS_PIN_FUNC_EINT>;
 		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
 	};
@@ -73,7 +111,7 @@
 /* GPIO_PERIC0 */
 &pinctrl_11 {
 	cs35l41_1_rst: cs35l41-1-rst {
-		samsung,pins = "gpp1-1"; /* XAPC_GPIO3 */
+		samsung,pins = "gpp6-3"; /* XAPC_USI3_CTSn_CSn */
 		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
 		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
 		samsung,pin-con-pdn = <EXYNOS_PIN_PDN_PREV>;
@@ -92,38 +130,48 @@
 	};
 };
 
-/* GPIO_HSI0 */
+/* GPIO_PERIC1 */
 &pinctrl_12 {
 	cs35l41_miso: cs35l41-miso {
+		samsung,pins = "gpp23-2"; /* XAPC_USI13_RTSn_DI */
+		samsung,pin-pud = <EXYNOS_PIN_PULL_DOWN>;
 	};
 
 	cs35l41_mosi: cs35l41-mosi {
+		samsung,pins = "gpp23-1"; /* XAPC_USI13_TXD_DO_SDA */
+		samsung,pin-drv = <ZUMA_PIN_DRV_X2>;
 	};
 
 	cs35l41_clk: cs35l41-clk {
-	};
-
-	cs35l41_cs1: cs35l41-cs1 {
+		samsung,pins = "gpp23-0"; /* XAPC_USI13_RXD_CLK_SCL */
+		samsung,pin-drv = <ZUMA_PIN_DRV_X2>;
 	};
 
 	cs35l41_cs2: cs35l41-cs2 {
-		samsung,pins = "gpn1-0";
+		samsung,pins = "gpp20-3";
 		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
 		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
 		samsung,pin-drv = <ZUMA_PIN_DRV_X2>;
 	};
 };
 
-&spi_19 {
+&spi13_cs_func {
+        samsung,pins = "gpp23-3";
+        samsung,pin-drv = <ZUMA_PIN_DRV_X2>;
+};
+
+&spi_13 {
+	/* XAPC_USI13 */
 	#address-cells = <1>;
 	#size-cells = <0>;
 	status = "okay";
 
 	pinctrl-names = "default";
-	pinctrl-0 = <>;
+	pinctrl-0 = <&spi13_bus &spi13_cs_func &cs35l41_cs2
+		     &cs35l41_miso &cs35l41_mosi &cs35l41_clk>;
 
 	num-cs = <2>;
-	cs-gpios = <&gpn3 0 GPIO_ACTIVE_LOW>, <&gpn1 0 GPIO_ACTIVE_LOW>;
+	cs-gpios = <&gpp23 3 GPIO_ACTIVE_HIGH>, <&gpp20 3 GPIO_ACTIVE_HIGH>;
 
 	cs35l41_1: cs35l41@0 {
 		#sound-dai-cells = <1>;
@@ -137,9 +185,9 @@
 		pinctrl-0 = <&cs35l41_1_irq &cs35l41_1_rst>;
 
 		interrupt-parent = <&gpa5>;
-		interrupts = <2 0 0>;
+		interrupts = <5 0 0>;
 
-		reset-gpios = <&gpp1 1 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpp6 3 GPIO_ACTIVE_HIGH>;
 
 		VA-supply = <&s_bucka_reg>;
 		VP-supply = <&V_SYS_dummy>;
@@ -151,7 +199,7 @@
 		cirrus,asp-sdout-hiz = <3>;
 		cirrus,tuning-has-prefix;
 		cirrus,hw-noise-gate-select = <63>;
-		//cirrus,hibernate-enable;
+		cirrus,hibernate-enable;
 
 		cirrus,gpio-config2 {
 			cirrus,gpio-src-select = <0x4>;
@@ -160,8 +208,8 @@
 
 		controller-data {
 			samsung,spi-feedback-delay = <1>;
-			/* SET SPI CS CONTROL TO MANUAL MODE */
-			samsung,spi-chip-select-mode = <0>;
+			/* SET SPI CS CONTROL TO AUTOMATIC */
+			samsung,spi-chip-select-mode = <1>;
 		};
 	};
 
@@ -192,7 +240,7 @@
 		cirrus,asp-sdout-hiz = <3>;
 		cirrus,tuning-has-prefix;
 		cirrus,hw-noise-gate-select = <63>;
-		//cirrus,hibernate-enable;
+		cirrus,hibernate-enable;
 
 		cirrus,gpio-config2 {
 			cirrus,gpio-src-select = <0x4>;
@@ -201,15 +249,15 @@
 
 		controller-data {
 			samsung,spi-feedback-delay = <1>;
-			/* SET SPI CS CONTROL TO AUTO_CS_MODE_FORCE_QUIESCE */
-			samsung,spi-chip-select-mode = <2>;
+			/* SET SPI CS CONTROL TO AUTOMATIC */
+			samsung,spi-chip-select-mode = <1>;
 		};
 	};
 };
 
 &aoc {
-	aoc-board-cfg = "SB3";
-	aoc-board-id = <0x40302>;
+	aoc-board-cfg = "CT3";
+	aoc-board-id = <0x40602>;
 	aoc-board-rev = <0x10000>;
 	prevent-fw-load = <0x0>;
 };

@@ -2,7 +2,7 @@
 /*
  * Google ZUMA comet specific thermal device tree source
  *
- * Copyright (c) 2022 Google, LLC
+ * Copyright (c) 2023 Google, LLC
  *		https://www.google.com
  */
 
@@ -20,7 +20,7 @@
 
 /* Thermal Zones */
 &thermal_zones {
-	modem_therm {
+	soc_therm {
 		polling-delay-passive = <0>;
 		polling-delay = <0>;
 		thermal-governor = "user_space";
@@ -33,7 +33,7 @@
 			};
 		};
 	};
-	quiet_therm {
+	rffe_therm {
 		polling-delay-passive = <0>;
 		polling-delay = <0>;
 		thermal-governor = "user_space";
@@ -56,7 +56,7 @@
 			};
 		};
 	};
-	rffe_therm {
+	charger_therm {
 		polling-delay-passive = <0>;
 		polling-delay = <0>;
 		thermal-governor = "user_space";
@@ -82,7 +82,7 @@
 			};
 		};
 	};
-	soc_therm {
+	modem_therm {
 		polling-delay-passive = <0>;
 		polling-delay = <0>;
 		thermal-governor = "user_space";
@@ -95,7 +95,7 @@
 			};
 		};
 	};
-	charger_therm {
+	inner_display_therm {
 		polling-delay-passive = <0>;
 		polling-delay = <0>;
 		thermal-governor = "user_space";

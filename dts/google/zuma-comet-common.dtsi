@@ -1,17 +1,25 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Comet board device tree source
+ * Zuma24 board device tree source
  *
- * Copyright 2022 Google LLC
+ * Copyright 2023 Google LLC
  */
 
-#include "zuma-comet-board.dtsi"
+#include "google-dts-base/zuma-common.dtsi"
 
-#include "zuma-comet-audio-ti.dtsi"
-#include "zuma-comet-camera.dtsi"
+#include "zuma-comet-aoc.dtsi"
+#include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-gsa-gsc.dtsi"
+#include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-pmic.dtsi"
+#include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-touch.dtsi"
+#include "google-dts-base/zuma-board-bluetooth.dtsi"
 #include "zuma-comet-display.dtsi"
+#include "zuma-comet-ese.dtsi"
+#include "zuma-comet-nfc.dtsi"
+#include "google-dts-base/zuma-board-pcie.dtsi"
+#include "zuma-comet-hall-sensor.dtsi"
 #include "zuma-comet-haptics.dtsi"
-#include "zuma-comet-touch.dtsi"
-#include "zuma-comet-thermal.dtsi"
-#include "zuma-comet-bluetooth.dtsi"
+#include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-bluetooth.dtsi"
+#include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-bluetooth-offmode.dtsi"
 #include "zuma-comet-pmic.dtsi"
+#include "zuma-comet-thermal.dtsi"
+#include "zuma-comet-usb.dtsi"

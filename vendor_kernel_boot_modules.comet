@@ -2,4 +2,6 @@
 # comet specific modules loaded during first stage init from vendor_kernel_boot
 # (platform common modules are from vendor_kernel_boot_modules.zuma)
 #
-
+panel-google-ct3a.ko
+panel-google-ct3b.ko
+panel-google-ct3c.ko

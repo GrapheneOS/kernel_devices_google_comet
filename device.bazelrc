@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-# Copyright (C) 2022 Google LLC
+# Copyright (C) 2023 Google LLC
 
-build:comet --//private/google-modules/soc/gs:gs_kernel_build=//private/devices/google/comet:zuma_comet
-build:comet --//private/google-modules/soc/gs:gs_soc_module=//private/devices/google/comet:zuma_soc.comet
+build:comet --//private/google-modules/soc/gs:gs_kernel_build=//private/devices/google/comet:zumapro_comet
+build:comet --//private/google-modules/soc/gs:gs_soc_module=//private/devices/google/comet:zumapro_soc.comet
+
