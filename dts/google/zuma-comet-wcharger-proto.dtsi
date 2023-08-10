@@ -19,24 +19,37 @@
 	};
 };
 
-&pinctrl_0 {
-	/* XIENT_23 P9412 Wireless Charger Interrupt */
+&max77779_pinctrl {
+	/* QI_INT_ODL Wireless Charger Interrupt */
 	wc_irq: wc_irq {
-		samsung,pins = "gpa8-1"; /* QI_INT_ODL */
-		samsung,pin-function = <EXYNOS_PIN_FUNC_EINT>;
-		samsung,pin-pud = <EXYNOS_PIN_PULL_UP>;
-		samsung,pin-drv = <ZUMA_PIN_DRV_X1>;
+		pins = "gpio4";
+		function = "normal";
+		input-enable;
+		bias-pull-up;
 	};
-};
 
-&pinctrl_8 {
-	/* XHSI1_GPIO6 P9412 Wireless Charger Enable */
+	/* QI_RX_COMM_EN_L Wireless Charger Enable */
 	wc_en: wc_en {
-		samsung,pins = "gph1-4"; /* QI_EN_L */
-		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
-		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
-		samsung,pin-con-pdn = <EXYNOS_PIN_PDN_OUT0>;
-		samsung,pin-pud-pdn = <EXYNOS_PIN_PULL_NONE>;
+		pins = "gpio1";
+		function = "gpio";
+		bias-disable;
+		output-low;
+	};
+
+	/* QI_PDET_GPOD6 */
+	det_int: det_int {
+		pins = "gpio2";
+		function = "normal";
+		input-enable;
+		bias-pull-up;
+	};
+
+	/* QI_BPP_EPP_GPP_SLCT */
+	wc_slct: wc_slct {
+		pins = "gpio5";
+		function = "gpio";
+		bias-disable;
+		output-high;
 	};
 };
 
@@ -45,4 +58,14 @@
 	#size-cells = <0>;
 
 	#include "zuma-comet-wcharger.dtsi"
+};
+
+&p9222 {
+	idt,gpio_wlc_en = <&max77779_sgpio 1 GPIO_ACTIVE_LOW>; /* QI_EN_L */
+	idt,gpio_qien = <&max77779_sgpio 1 GPIO_ACTIVE_LOW>; /* QI_EN_L */
+	idt,irq_det_gpio = <&max77779_sgpio 2 GPIO_ACTIVE_LOW>; /* QI_PDET_OD_L */
+	idt,irq_gpio = <&max77779_sgpio 4 GPIO_ACTIVE_LOW>; /* QI_INT_ODL */
+	idt,irq_flag = <0x2002>; /* IRQF_TRIGGER_FALLING | IRQF_ONESHOT */
+	idt,gpio_slct = <&max77779_sgpio 5 GPIO_ACTIVE_HIGH>; /* QI_BPP_EPP_SLCT */
+	idt,gpio_slct_value = <1>;
 };
