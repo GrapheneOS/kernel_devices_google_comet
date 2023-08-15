@@ -82,9 +82,65 @@ static const struct drm_dsc_config pps_config = {
 #define CT3A_WRCTRLD_DIMMING_BIT    0x08
 #define CT3A_WRCTRLD_BCTRL_BIT      0x20
 
-static const u8 test_key_enable[] = { 0xF0, 0x5A, 0x5A };
-static const u8 test_key_disable[] = { 0xF0, 0xA5, 0xA5 };
+static const u8 unlock_cmd_f0[] = { 0xF0, 0x5A, 0x5A };
+static const u8 lock_cmd_f0[] = { 0xF0, 0xA5, 0xA5 };
 static const u8 ltps_update[] = { 0xF7, 0x0F };
+
+static const struct exynos_dsi_cmd ct3a_lp_cmds[] = {
+	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_OFF),
+};
+static DEFINE_EXYNOS_CMD_SET(ct3a_lp);
+
+static const struct exynos_dsi_cmd ct3a_lp_off_cmds[] = {
+	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_OFF),
+};
+
+static const struct exynos_dsi_cmd ct3a_lp_low_cmds[] = {
+	EXYNOS_DSI_CMD0(unlock_cmd_f0),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x02, 0xAE, 0xCB),
+	EXYNOS_DSI_CMD_SEQ(0xCB, 0x11, 0x70),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x05, 0xBD),
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x03),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x52, 0x64),
+	EXYNOS_DSI_CMD_SEQ(0x64, 0x01, 0x03, 0x0A, 0x03),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x5E, 0xBD),
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00, 0x00, 0x00, 0x08, 0x00, 0x74),
+	/* AOD Low Mode, 10nit */
+	EXYNOS_DSI_CMD_SEQ(0x51, 0x03, 0x8A),
+	EXYNOS_DSI_CMD_SEQ_DELAY(17, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24),
+	EXYNOS_DSI_CMD_SEQ(0x60, 0x00),
+	EXYNOS_DSI_CMD0(ltps_update),
+	EXYNOS_DSI_CMD0(lock_cmd_f0),
+
+	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_ON),
+};
+
+static const struct exynos_dsi_cmd ct3a_lp_high_cmds[] = {
+	EXYNOS_DSI_CMD0(unlock_cmd_f0),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x02, 0xAE, 0xCB),
+	EXYNOS_DSI_CMD_SEQ(0xCB, 0x11, 0x70),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x05, 0xBD),
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x03),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x52, 0x64),
+	EXYNOS_DSI_CMD_SEQ(0x64, 0x01, 0x03, 0x0A, 0x03),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x5E, 0xBD),
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00, 0x00, 0x00, 0x08, 0x00, 0x74),
+	/* AOD Low Mode, 10nit */
+	EXYNOS_DSI_CMD_SEQ(0x51, 0x07, 0xFF),
+	EXYNOS_DSI_CMD_SEQ_DELAY(17, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24),
+	EXYNOS_DSI_CMD_SEQ(0x60, 0x00),
+	EXYNOS_DSI_CMD0(ltps_update),
+	EXYNOS_DSI_CMD0(lock_cmd_f0),
+
+	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_ON),
+};
+
+static const struct exynos_binned_lp ct3a_binned_lp[] = {
+	BINNED_LP_MODE("off", 0, ct3a_lp_off_cmds),
+	/* low threshold 40 nits */
+	BINNED_LP_MODE("low", 766, ct3a_lp_low_cmds),
+	BINNED_LP_MODE("high", 3307, ct3a_lp_high_cmds)
+};
 
 static const struct exynos_dsi_cmd ct3a_off_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_OFF),
@@ -95,14 +151,14 @@ static DEFINE_EXYNOS_CMD_SET(ct3a_off);
 static const struct exynos_dsi_cmd ct3a_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_TEAR_ON),
 
-	EXYNOS_DSI_CMD0(test_key_enable),
+	EXYNOS_DSI_CMD0(unlock_cmd_f0),
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, 0xB9, 0x00, 0x51, 0x00, 0x00),
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_PROTO1_1), 0xB9, 0x04, 0x51, 0x00, 0x00),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x08, 0xB9),
 	EXYNOS_DSI_CMD_SEQ(0xB9, 0x00, 0x00, 0x00, 0x50, 0x00, 0x00, 0x00, 0x50),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x22, 0xB9),
 	EXYNOS_DSI_CMD_SEQ(0xB9, 0x00, 0x2F, 0x00, 0x82, 0x00, 0x2F, 0x00, 0x82),
-	EXYNOS_DSI_CMD0(test_key_disable),
+	EXYNOS_DSI_CMD0(lock_cmd_f0),
 
 	/* CASET: 2151 */
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_COLUMN_ADDRESS, 0x00, 0x00, 0x08, 0x67),
@@ -138,7 +194,7 @@ static void ct3a_change_frequency(struct exynos_panel *ctx,
 		return;
 	}
 
-	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
+	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
 	EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0xE1);
 	if (ctx->op_hz == 60) {
 		if (vrefresh == 1) {
@@ -175,33 +231,9 @@ static void ct3a_change_frequency(struct exynos_panel *ctx,
 	}
 	EXYNOS_DCS_BUF_ADD(ctx, 0x60, val);
 	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
-	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
 
 	dev_dbg(ctx->dev, "%s: change to %uHz\n", __func__, vrefresh);
-}
-
-static int ct3a_set_op_hz(struct exynos_panel *ctx, unsigned int hz)
-{
-	const struct exynos_panel_mode *pmode = ctx->current_mode;
-	const unsigned int vrefresh = drm_mode_vrefresh(&ctx->current_mode->mode);
-
-	if ((vrefresh > hz) || ((hz != 60) && (hz != 120))) {
-		dev_err(ctx->dev, "invalid op_hz=%u for vrefresh=%u\n",
-			hz, vrefresh);
-		return -EINVAL;
-	}
-
-	ctx->op_hz = hz;
-
-	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x01);
-	EXYNOS_DCS_BUF_ADD(ctx, 0x60, (hz == 120) ? 0x00 : 0x18);
-	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
-	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
-
-	ct3a_change_frequency(ctx, pmode);
-	dev_info(ctx->dev, "set op_hz at %u\n", hz);
-	return 0;
 }
 
 static void ct3a_update_wrctrld(struct exynos_panel *ctx)
@@ -217,13 +249,69 @@ static void ct3a_update_wrctrld(struct exynos_panel *ctx)
 		ctx->dimming_on ? "on" : "off",
 		ctx->hbm.local_hbm.enabled ? "on" : "off");
 
-	EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_WRITE_CONTROL_DISPLAY, val);
+	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, MIPI_DCS_WRITE_CONTROL_DISPLAY, val);
+}
+
+static void ct3a_set_nolp_mode(struct exynos_panel *ctx,
+			      const struct exynos_panel_mode *pmode)
+{
+	if (!is_panel_active(ctx))
+		return;
+
+	EXYNOS_DCS_BUF_ADD(ctx, MIPI_DCS_SET_DISPLAY_OFF);
+
+	/* AoD off */
+	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x52, 0x64);
+	EXYNOS_DCS_BUF_ADD(ctx, 0x64, 0x00);
+	ct3a_update_wrctrld(ctx);
+	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
+	EXYNOS_DCS_BUF_ADD_SET(ctx, lock_cmd_f0);
+	ct3a_change_frequency(ctx, pmode);
+	usleep_range(34000, 34010);
+
+	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, MIPI_DCS_SET_DISPLAY_ON);
+
+	dev_info(ctx->dev, "exit LP mode\n");
+}
+
+static int ct3a_set_op_hz(struct exynos_panel *ctx, unsigned int hz)
+{
+	const struct exynos_panel_mode *pmode = ctx->current_mode;
+	const unsigned int vrefresh = drm_mode_vrefresh(&ctx->current_mode->mode);
+
+	if ((vrefresh > hz) || ((hz != 60) && (hz != 120))) {
+		dev_err(ctx->dev, "invalid op_hz=%u for vrefresh=%u\n",
+			hz, vrefresh);
+		return -EINVAL;
+	}
+
+	ctx->op_hz = hz;
+
+	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x01);
+	EXYNOS_DCS_BUF_ADD(ctx, 0x60, (hz == 120) ? 0x00 : 0x18);
+	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
+
+	ct3a_change_frequency(ctx, pmode);
+	dev_info(ctx->dev, "set op_hz at %u\n", hz);
+	return 0;
 }
 
 static int ct3a_set_brightness(struct exynos_panel *ctx, u16 br)
 {
 	u16 brightness;
 	u32 max_brightness;
+
+	if (ctx->current_mode && ctx->current_mode->exynos_mode.is_lp_mode) {
+		const struct exynos_panel_funcs *funcs;
+
+		funcs = ctx->desc->exynos_panel_func;
+		if (funcs && funcs->set_binned_lp)
+			funcs->set_binned_lp(ctx, br);
+		return 0;
+	}
 
 	if (!ctx->desc->brt_capability) {
 		dev_err(ctx->dev, "no available brightness capability\n");
@@ -335,16 +423,19 @@ static int ct3a_enable(struct drm_panel *panel)
 	ct3a_update_wrctrld(ctx);
 
 	/* early exit off */
-	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
+	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
 	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x01, 0xBD);
 	EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0x81);
 	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
-	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
 
 	/* frequency */
 	ct3a_change_frequency(ctx, pmode);
 
-	EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
+	if (pmode->exynos_mode.is_lp_mode)
+		exynos_panel_set_lp_mode(ctx, pmode);
+	else
+		EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
 
 	dev_info(ctx->dev, "%s -\n", __func__);
 
@@ -542,6 +633,32 @@ const struct brightness_capability ct3a_brightness_capability = {
 	},
 };
 
+static const struct exynos_panel_mode ct3a_lp_mode = {
+	.mode = {
+		.name = "2152x2076x30",
+		.clock = 144900,
+		.hdisplay = HDISPLAY,
+		.hsync_start = HDISPLAY + HFP,
+		.hsync_end = HDISPLAY + HFP + HSA,
+		.htotal = HDISPLAY + HFP + HSA + HBP,
+		.vdisplay = VDISPLAY,
+		.vsync_start = VDISPLAY + VFP,
+		.vsync_end = VDISPLAY + VFP + VSA,
+		.vtotal = VDISPLAY + VFP + VSA + VBP,
+		.flags = 0,
+		.width_mm = WIDTH_MM,
+		.height_mm = HEIGHT_MM,
+	},
+	.exynos_mode = {
+		.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
+		.vblank_usec = 120,
+		.bpc = 8,
+		.dsc = CT3A_DSC,
+		.underrun_param = &underrun_param,
+		.is_lp_mode = true,
+	}
+};
+
 static const struct drm_panel_funcs ct3a_drm_funcs = {
 	.disable = exynos_panel_disable,
 	.unprepare = exynos_panel_unprepare,
@@ -553,6 +670,9 @@ static const struct drm_panel_funcs ct3a_drm_funcs = {
 
 static const struct exynos_panel_funcs ct3a_exynos_funcs = {
 	.set_brightness = ct3a_set_brightness,
+	.set_lp_mode = exynos_panel_set_lp_mode,
+	.set_nolp_mode = ct3a_set_nolp_mode,
+	.set_binned_lp = exynos_panel_set_binned_lp,
 	.set_dimming_on = ct3a_set_dimming_on,
 	.set_hbm_mode = ct3a_set_hbm_mode,
 	.set_op_hz = ct3a_set_op_hz,
@@ -575,6 +695,10 @@ const struct exynos_panel_desc google_ct3a = {
 	.min_luminance = 5,
 	.modes = ct3a_modes,
 	.num_modes = ARRAY_SIZE(ct3a_modes),
+	.lp_mode = &ct3a_lp_mode,
+	.lp_cmd_set = &ct3a_lp_cmd_set,
+	.binned_lp = ct3a_binned_lp,
+	.num_binned_lp = ARRAY_SIZE(ct3a_binned_lp),
 	.off_cmd_set = &ct3a_off_cmd_set,
 	.panel_func = &ct3a_drm_funcs,
 	.exynos_panel_func = &ct3a_exynos_funcs,
