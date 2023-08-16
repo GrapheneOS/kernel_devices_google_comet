@@ -152,43 +152,107 @@ static const struct exynos_dsi_cmd ct3c_init_cmds[] = {
 };
 static DEFINE_EXYNOS_CMD_SET(ct3c_init);
 
+/**
+ * struct ct3c_panel - panel specific runtime info
+ *
+ * This struct maintains ct3c panel specific runtime info, any fixed details about panel
+ * should most likely go into struct exynos_panel_desc
+ */
+struct ct3c_panel {
+	/** @base: base panel struct */
+	struct exynos_panel base;
+};
+#define to_spanel(ctx) container_of(ctx, struct ct3c_panel, base)
+
 static void ct3c_change_frequency(struct exynos_panel *ctx,
-                                  const unsigned int vrefresh)
+                                  const struct exynos_panel_mode *pmode)
 {
+	u32 vrefresh = drm_mode_vrefresh(&pmode->mode);
+
 	if (!ctx || ((vrefresh != 60) && (vrefresh != 120)))
 		return;
 
+	if (vrefresh > ctx->op_hz) {
+		dev_err(ctx->dev, "invalid freq setting: op_hz=%u, vrefresh=%u\n",
+				ctx->op_hz, vrefresh);
+		return;
+	}
+
 	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
 	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x27, 0xF2);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x02);
-	EXYNOS_DCS_BUF_ADD(ctx, 0x60, (vrefresh == 120) ? 0x00 : 0x08);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x07, 0xF2);
-	if (vrefresh == 120) {
+
+	if (ctx->op_hz == 60) {
+		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x82);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x60, 0x00);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x0E, 0xF2);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x00, 0x0C);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x4C, 0xF6);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xF6, 0x21, 0x0E);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x28, 0xF2);
+		EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xCC); /* 10 bit control */
+
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x88, 0xCB);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x14, 0x13);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x8E, 0xCB);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x14, 0x13);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0xA6, 0xCB);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x03, 0x0A, 0x0F, 0x11);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0xBF, 0xCB);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x06, 0x33, 0xF8, 0x06, 0x47, 0xD8, 0x06, 0x33, 0xD8, 0x06, 0x47);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0xFD, 0xCB);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x1B, 0x1B);
 	} else {
-		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x09, 0x9C);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x02);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x60, (vrefresh == 120) ? 0x00 : 0x08);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x07, 0xF2);
+		if (vrefresh == 120) {
+			EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x00, 0x0C);
+		} else {
+			EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x09, 0x9C);
+		}
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x4C, 0xF6);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xF6, 0x43, 0x1C);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x28, 0xF2);
+		/* TODO b/296203152 : batching here makes green screen. */
+		EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xCC); /* 10 bit control */
+
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x88, 0xCB);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x27, 0x26);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x8E, 0xCB);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x27, 0x26);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0xA6, 0xCB);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x07, 0x14, 0x20, 0x22);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0xBF, 0xCB);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x0B, 0x19, 0xF8, 0x0B, 0x8D, 0xD8, 0x0B, 0x19, 0xD8, 0x0B, 0x8D);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0xFD, 0xCB);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x36, 0x36);
 	}
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x4C, 0xF6);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xF6, 0x43, 0x1C);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x28, 0xF2);
-	/* TODO b/296203152 : batching here makes green screen. */
-	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xCC);  /* 10 bit control */
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x88, 0xCB);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x27, 0x26);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x8E, 0xCB);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x27, 0x26);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0xA6, 0xCB);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x07, 0x14, 0x20, 0x22);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0xBF, 0xCB);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x0B, 0x19, 0xF8, 0x0B, 0x8D, 0xD8, 0x0B, 0x19, 0xD8, 0x0B, 0x8D);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0xFD, 0xCB);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x36, 0x36);
+
 	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x28, 0xF2);
-	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xC4);  /* 8 bit control */
+	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xC4); /* 8 bit control */
 	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
 
-	dev_info(ctx->dev, "%s: change to %uHz\n", __func__, vrefresh);
+	dev_info(ctx->dev, "%s: change to %uHz, op_hz=%u\n", __func__, vrefresh, ctx->op_hz);
+}
+
+static int ct3c_set_op_hz(struct exynos_panel *ctx, unsigned int hz)
+{
+	const struct exynos_panel_mode *pmode = ctx->current_mode;
+	const unsigned int vrefresh = drm_mode_vrefresh(&ctx->current_mode->mode);
+
+	if ((vrefresh > hz) || ((hz != 60) && (hz != 120))) {
+		dev_err(ctx->dev, "invalid op_hz=%u for vrefresh=%u\n",
+			hz, vrefresh);
+		return -EINVAL;
+	}
+
+	ctx->op_hz = hz;
+
+	ct3c_change_frequency(ctx, pmode);
+	dev_info(ctx->dev, "set op_hz at %u\n", hz);
+
+	return 0;
 }
 
 static void ct3c_update_wrctrld(struct exynos_panel *ctx)
@@ -275,7 +339,7 @@ static void ct3c_set_dimming_on(struct exynos_panel *exynos_panel,
 static void ct3c_mode_set(struct exynos_panel *ctx,
                           const struct exynos_panel_mode *pmode)
 {
-	ct3c_change_frequency(ctx, drm_mode_vrefresh(&pmode->mode));
+	ct3c_change_frequency(ctx, pmode);
 }
 
 static bool ct3c_is_mode_seamless(const struct exynos_panel *ctx,
@@ -361,7 +425,7 @@ static void ct3c_set_nolp_mode(struct exynos_panel *ctx,
 
 	/* backlight control and dimming */
 	ct3c_update_wrctrld(ctx);
-	ct3c_change_frequency(ctx, drm_mode_vrefresh(&pmode->mode));
+	ct3c_change_frequency(ctx, pmode);
 
 	DPU_ATRACE_BEGIN("ct3c_wait_one_vblank");
 	exynos_panel_wait_for_vsync_done(ctx, te_usec,
@@ -380,14 +444,12 @@ static int ct3c_enable(struct drm_panel *panel)
 {
 	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
 	const struct exynos_panel_mode *pmode = ctx->current_mode;
-	const struct drm_display_mode *mode;
 	struct drm_dsc_picture_parameter_set pps_payload;
 
 	if (!pmode) {
 		dev_err(ctx->dev, "no current mode set\n");
 		return -EINVAL;
 	}
-	mode = &pmode->mode;
 
 	dev_info(ctx->dev, "%s\n", __func__);
 
@@ -400,7 +462,7 @@ static int ct3c_enable(struct drm_panel *panel)
 	exynos_panel_send_cmd_set(ctx, &ct3c_init_cmd_set);
 
 	/* frequency */
-	ct3c_change_frequency(ctx, drm_mode_vrefresh(mode));
+	ct3c_change_frequency(ctx, pmode);
 
 	/* DSC related configuration */
 	exynos_dcs_compression_mode(ctx, 0x1);
@@ -429,6 +491,24 @@ static int ct3c_enable(struct drm_panel *panel)
 		EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
 
 	return 0;
+}
+
+static int ct3c_panel_probe(struct mipi_dsi_device *dsi)
+{
+	struct ct3c_panel *spanel;
+
+	spanel = devm_kzalloc(&dsi->dev, sizeof(*spanel), GFP_KERNEL);
+	if (!spanel)
+		return -ENOMEM;
+
+	/*
+		When refresh rate = 120Hz, op rate = 120 (120Hz HS)
+		When refresh rate = 60Hz, op rate = 60 (60Hz NS) / 120 (60Hz HS)
+		Default settings: 60Hz HS
+	*/
+	spanel->base.op_hz = 120;
+
+	return exynos_panel_common_init(dsi, &spanel->base);
 }
 
 static const struct exynos_display_underrun_param underrun_param = {
@@ -576,6 +656,7 @@ static const struct exynos_panel_funcs ct3c_exynos_funcs = {
 	.set_binned_lp = exynos_panel_set_binned_lp,
 	.set_dimming_on = ct3c_set_dimming_on,
 	.set_hbm_mode = ct3c_set_hbm_mode,
+	.set_op_hz = ct3c_set_op_hz,
 	.is_mode_seamless = ct3c_is_mode_seamless,
 	.mode_set = ct3c_mode_set,
 	.get_panel_rev = ct3c_get_panel_rev,
@@ -621,7 +702,7 @@ static const struct of_device_id exynos_panel_of_match[] = {
 MODULE_DEVICE_TABLE(of, exynos_panel_of_match);
 
 static struct mipi_dsi_driver exynos_panel_driver = {
-	.probe = exynos_panel_probe,
+	.probe = ct3c_panel_probe,
 	.remove = exynos_panel_remove,
 	.driver = {
 		.name = "panel-google-ct3c",
