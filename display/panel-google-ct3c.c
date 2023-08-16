@@ -121,34 +121,35 @@ static void ct3c_change_frequency(struct exynos_panel *ctx,
 	if (!ctx || ((vrefresh != 60) && (vrefresh != 120)))
 		return;
 
-	EXYNOS_DCS_WRITE_TABLE(ctx, test_key_enable);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x27, 0xF2);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xF2, 0x02);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0x60, (vrefresh == 120) ? 0x00 : 0x08);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x07, 0xF2);
+	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x27, 0xF2);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x02);
+	EXYNOS_DCS_BUF_ADD(ctx, 0x60, (vrefresh == 120) ? 0x00 : 0x08);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x07, 0xF2);
 	if (vrefresh == 120) {
-		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF2, 0x00, 0x0C);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x00, 0x0C);
 	} else {
-		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF2, 0x09, 0x9C);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x09, 0x9C);
 	}
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x4C, 0xF6);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xF6, 0x43, 0x1C);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x28, 0xF2);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xF2, 0xCC);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x00, 0x88, 0xCB);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xCB, 0x27, 0x26);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x00, 0x8E, 0xCB);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xCB, 0x27, 0x26);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x00, 0xA6, 0xCB);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xCB, 0x07, 0x14, 0x20, 0x22);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x00, 0xBF, 0xCB);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xCB, 0x0B, 0x19, 0xF8, 0x0B, 0x8D, 0xD8, 0x0B, 0x19, 0xD8, 0x0B, 0x8D);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x01, 0xFD, 0xCB);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xCB, 0x36, 0x36);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x00, 0x28, 0xF2);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xF2, 0xC4);
-	EXYNOS_DCS_WRITE_TABLE(ctx, ltps_update);
-	EXYNOS_DCS_WRITE_TABLE(ctx, test_key_disable);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x4C, 0xF6);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xF6, 0x43, 0x1C);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x28, 0xF2);
+	/* TODO b/296203152 : batching here makes green screen. */
+	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xCC);  /* 10 bit control */
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x88, 0xCB);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x27, 0x26);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x8E, 0xCB);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x27, 0x26);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0xA6, 0xCB);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x07, 0x14, 0x20, 0x22);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0xBF, 0xCB);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x0B, 0x19, 0xF8, 0x0B, 0x8D, 0xD8, 0x0B, 0x19, 0xD8, 0x0B, 0x8D);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0xFD, 0xCB);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x36, 0x36);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x28, 0xF2);
+	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xC4);  /* 8 bit control */
+	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
 
 	dev_info(ctx->dev, "%s: change to %uHz\n", __func__, vrefresh);
 }
@@ -166,7 +167,7 @@ static void ct3c_update_wrctrld(struct exynos_panel *ctx)
 		ctx->dimming_on ? "on" : "off",
 		ctx->hbm.local_hbm.enabled ? "on" : "off");
 
-	EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_WRITE_CONTROL_DISPLAY, val);
+	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, MIPI_DCS_WRITE_CONTROL_DISPLAY, val);
 }
 
 static int ct3c_set_brightness(struct exynos_panel *ctx, u16 br)
@@ -292,17 +293,17 @@ static int ct3c_enable(struct drm_panel *panel)
 	drm_dsc_pps_payload_pack(&pps_payload, &pps_config);
 	EXYNOS_PPS_WRITE_BUF(ctx, &pps_payload);
 	/* DSC Enable */
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xC2, 0x14);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0x9D, 0x01);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xC2, 0x14);
+	EXYNOS_DCS_BUF_ADD(ctx, 0x9D, 0x01);
 
-	EXYNOS_DCS_WRITE_TABLE(ctx, test_key_enable);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xFC, 0x5A, 0x5A);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x2A, 0xC5);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xC5, 0x0D, 0x10, 0x80, 0x05);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x2E, 0xC5);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xC5, 0x6A, 0x8B);
-	EXYNOS_DCS_WRITE_TABLE(ctx, test_key_disable);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xFC, 0xA5, 0xA5);
+	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xFC, 0x5A, 0x5A);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x2A, 0xC5);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xC5, 0x0D, 0x10, 0x80, 0x05);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x2E, 0xC5);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xC5, 0x6A, 0x8B);
+	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_disable);
+	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xFC, 0xA5, 0xA5);
 
 	/* dimming and HBM */
 	ct3c_update_wrctrld(ctx);
