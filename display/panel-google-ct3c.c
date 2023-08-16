@@ -14,6 +14,7 @@
 #include <linux/module.h>
 #include <video/mipi_display.h>
 
+#include "trace/dpu_trace.h"
 #include "panel/panel-samsung-drv.h"
 
 static const struct drm_dsc_config pps_config = {
@@ -91,6 +92,42 @@ static const struct exynos_dsi_cmd ct3c_off_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ_DELAY(120, MIPI_DCS_ENTER_SLEEP_MODE),
 };
 static DEFINE_EXYNOS_CMD_SET(ct3c_off);
+
+static const struct exynos_dsi_cmd ct3c_lp_cmds[] = {
+	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_OFF),
+};
+static DEFINE_EXYNOS_CMD_SET(ct3c_lp);
+
+static const struct exynos_dsi_cmd ct3c_lp_off_cmds[] = {
+	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_OFF),
+};
+
+static const struct exynos_dsi_cmd ct3c_lp_low_cmds[] = {
+	EXYNOS_DSI_CMD0(test_key_enable),
+	EXYNOS_DSI_CMD_SEQ(0x91, 0x01), /* NEW Gamma IP Bypass */
+	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x25), /* AOD 10 nit */
+	EXYNOS_DSI_CMD(test_key_disable, 34),
+
+	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_ON),
+};
+
+static const struct exynos_dsi_cmd ct3c_lp_high_cmds[] = {
+	EXYNOS_DSI_CMD0(test_key_enable),
+	EXYNOS_DSI_CMD_SEQ(0x91, 0x01), /* NEW Gamma IP Bypass */
+	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24), /* AOD 50 nit */
+	EXYNOS_DSI_CMD(test_key_disable, 34),
+
+	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_ON),
+};
+
+static const struct exynos_binned_lp ct3c_binned_lp[] = {
+	BINNED_LP_MODE("off", 0, ct3c_lp_off_cmds),
+	/* low threshold 40 nits */
+	BINNED_LP_MODE_TIMING("low", 716, ct3c_lp_low_cmds,
+			      12, 12 + 50),
+	BINNED_LP_MODE_TIMING("high", 4095, ct3c_lp_high_cmds,
+			      12, 12 + 50),
+};
 
 static const struct exynos_dsi_cmd ct3c_init_cmds[] = {
 	/* TE on */
@@ -174,6 +211,15 @@ static int ct3c_set_brightness(struct exynos_panel *ctx, u16 br)
 {
 	u16 brightness;
 	u32 max_brightness;
+
+	if (ctx->current_mode && ctx->current_mode->exynos_mode.is_lp_mode) {
+		const struct exynos_panel_funcs *funcs;
+
+		funcs = ctx->desc->exynos_panel_func;
+		if (funcs && funcs->set_binned_lp)
+			funcs->set_binned_lp(ctx, br);
+		return 0;
+	}
 
 	if (!ctx->desc->brt_capability) {
 		dev_err(ctx->dev, "no available brightness capability\n");
@@ -295,6 +341,41 @@ static void ct3c_panel_reset(struct exynos_panel *ctx)
     exynos_panel_init(ctx);
 }
 
+static void ct3c_set_nolp_mode(struct exynos_panel *ctx,
+				  const struct exynos_panel_mode *pmode)
+{
+	const struct exynos_panel_mode *current_mode = ctx->current_mode;
+	unsigned int vrefresh = current_mode ? drm_mode_vrefresh(&current_mode->mode) : 30;
+	unsigned int te_usec = current_mode ? current_mode->exynos_mode.te_usec : 1109;
+
+	if (!is_panel_active(ctx))
+		return;
+
+	EXYNOS_DCS_BUF_ADD(ctx, MIPI_DCS_SET_DISPLAY_OFF);
+
+	/* AOD Mode Off Setting */
+	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
+	EXYNOS_DCS_BUF_ADD(ctx, 0x91, 0x02);
+	EXYNOS_DCS_BUF_ADD(ctx, 0x53, 0x20);
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
+
+	/* backlight control and dimming */
+	ct3c_update_wrctrld(ctx);
+	ct3c_change_frequency(ctx, drm_mode_vrefresh(&pmode->mode));
+
+	DPU_ATRACE_BEGIN("ct3c_wait_one_vblank");
+	exynos_panel_wait_for_vsync_done(ctx, te_usec,
+			EXYNOS_VREFRESH_TO_PERIOD_USEC(vrefresh));
+
+	/* Additional sleep time to account for TE variability */
+	usleep_range(1000, 1010);
+	DPU_ATRACE_END("ct3c_wait_one_vblank");
+
+	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, MIPI_DCS_SET_DISPLAY_ON);
+
+	dev_info(ctx->dev, "exit LP mode\n");
+}
+
 static int ct3c_enable(struct drm_panel *panel)
 {
 	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
@@ -342,7 +423,10 @@ static int ct3c_enable(struct drm_panel *panel)
 	ct3c_update_wrctrld(ctx);
 
 	/* display on */
-	EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
+	if (pmode->exynos_mode.is_lp_mode)
+		exynos_panel_set_lp_mode(ctx, pmode);
+	else
+		EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
 
 	return 0;
 }
@@ -385,6 +469,7 @@ static const struct exynos_panel_mode ct3c_modes[] = {
 		.exynos_mode = {
 			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
 			.vblank_usec = 120,
+			.te_usec = 8615,
 			.bpc = 8,
 			.dsc = CT3C_DSC,
 			.underrun_param = &underrun_param,
@@ -409,6 +494,7 @@ static const struct exynos_panel_mode ct3c_modes[] = {
 		.exynos_mode = {
 			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
 			.vblank_usec = 120,
+			.te_usec = 276, /* b/273191882 */
 			.bpc = 8,
 			.dsc = CT3C_DSC,
 			.underrun_param = &underrun_param,
@@ -447,6 +533,33 @@ const struct brightness_capability ct3c_brightness_capability = {
 	},
 };
 
+static const struct exynos_panel_mode ct3c_lp_mode = {
+	.mode = {
+		.name = "1080x2424x30",
+		.clock = 85260,
+		.hdisplay = HDISPLAY,
+		.hsync_start = HDISPLAY + HFP,
+		.hsync_end = HDISPLAY + HFP + HSA,
+		.htotal = HDISPLAY + HFP + HSA + HBP,
+		.vdisplay = VDISPLAY,
+		.vsync_start = VDISPLAY + VFP,
+		.vsync_end = VDISPLAY + VFP + VSA,
+		.vtotal = VDISPLAY + VFP + VSA + VBP,
+		.flags = 0,
+		.width_mm = WIDTH_MM,
+		.height_mm = HEIGHT_MM,
+	},
+	.exynos_mode = {
+		.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
+		.vblank_usec = 120,
+		.te_usec = 1109,
+		.bpc = 8,
+		.dsc = CT3C_DSC,
+		.underrun_param = &underrun_param,
+		.is_lp_mode = true,
+	}
+};
+
 static const struct drm_panel_funcs ct3c_drm_funcs = {
 	.disable = exynos_panel_disable,
 	.unprepare = exynos_panel_unprepare,
@@ -458,6 +571,9 @@ static const struct drm_panel_funcs ct3c_drm_funcs = {
 
 static const struct exynos_panel_funcs ct3c_exynos_funcs = {
 	.set_brightness = ct3c_set_brightness,
+	.set_lp_mode = exynos_panel_set_lp_mode,
+	.set_nolp_mode = ct3c_set_nolp_mode,
+	.set_binned_lp = exynos_panel_set_binned_lp,
 	.set_dimming_on = ct3c_set_dimming_on,
 	.set_hbm_mode = ct3c_set_hbm_mode,
 	.is_mode_seamless = ct3c_is_mode_seamless,
@@ -470,7 +586,7 @@ const struct exynos_panel_desc google_ct3c = {
 	.data_lane_cnt = 4,
 	.max_brightness = 4095,
 	.min_brightness = 2,
-	.dft_brightness = 1023,    /* TODO: b/291675593, use 140 nits brightness */
+	.dft_brightness = 1268,    /* 140 nits */
 	.brt_capability = &ct3c_brightness_capability,
 	/* supported HDR format bitmask : 1(DOLBY_VISION), 2(HDR10), 3(HLG) */
 	.hdr_formats = BIT(2) | BIT(3),
@@ -480,6 +596,10 @@ const struct exynos_panel_desc google_ct3c = {
 	.modes = ct3c_modes,
 	.num_modes = ARRAY_SIZE(ct3c_modes),
 	.off_cmd_set = &ct3c_off_cmd_set,
+	.lp_mode = &ct3c_lp_mode,
+	.lp_cmd_set = &ct3c_lp_cmd_set,
+	.binned_lp = ct3c_binned_lp,
+	.num_binned_lp = ARRAY_SIZE(ct3c_binned_lp),
 	.panel_func = &ct3c_drm_funcs,
 	.exynos_panel_func = &ct3c_exynos_funcs,
 	.reg_ctrl_enable = {
