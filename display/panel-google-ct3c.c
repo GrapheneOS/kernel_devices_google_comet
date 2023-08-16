@@ -193,6 +193,33 @@ static int ct3c_set_brightness(struct exynos_panel *ctx, u16 br)
 	return exynos_dcs_set_brightness(ctx, brightness);
 }
 
+static void ct3c_set_hbm_mode(struct exynos_panel *ctx,
+				enum exynos_hbm_mode mode)
+{
+	ctx->hbm_mode = mode;
+
+	/* FGZ mode for Proto 1.0 only */
+	if (ctx->panel_rev <= PANEL_REV_PROTO1) {
+		EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x28, 0xF2);
+		EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xCC); /* 10bit Change */
+
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0x18, 0x68);
+		/* FGZ mode enable (IRC off) / FLAT gamma (default, IRC on)  */
+		EXYNOS_DCS_BUF_ADD(ctx, 0x68, IS_HBM_ON_IRC_OFF(ctx->hbm_mode) ? 0x82 : 0x00);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0x19, 0x68);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x68, 0x00, 0x00, 0x00, 0x96, 0xFA, 0x0C, 0x80, 0x00,
+			0x00, 0x0A, 0xD5, 0xFF, 0x94, 0x00, 0x00); /* FGZ mode */
+
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00,0x28,0xF2);
+		EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xC4); /* 8bit Change */
+		EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
+	}
+
+	dev_info(ctx->dev, "hbm_on=%d hbm_ircoff=%d.\n", IS_HBM_ON(ctx->hbm_mode),
+		 IS_HBM_ON_IRC_OFF(ctx->hbm_mode));
+}
+
 static void ct3c_set_dimming_on(struct exynos_panel *exynos_panel,
                                 bool dimming_on)
 {
@@ -242,7 +269,13 @@ static void ct3c_get_panel_rev(struct exynos_panel *ctx, u32 id)
 {
 	/* extract command 0xDB */
 	u8 build_code = (id & 0xFF00) >> 8;
-	u8 rev = ((build_code & 0xE0) >> 3) | ((build_code & 0x0C) >> 2);
+	u8 main = (build_code & 0xE0) >> 3;
+	u8 sub = (build_code & 0x0C) >> 2;
+	u8 rev = main | sub;
+
+	/* proto panel will have a +1 revision compared to device */
+	if (main == 0)
+		rev--;
 
 	exynos_panel_get_panel_rev(ctx, rev);
 }
@@ -426,6 +459,7 @@ static const struct drm_panel_funcs ct3c_drm_funcs = {
 static const struct exynos_panel_funcs ct3c_exynos_funcs = {
 	.set_brightness = ct3c_set_brightness,
 	.set_dimming_on = ct3c_set_dimming_on,
+	.set_hbm_mode = ct3c_set_hbm_mode,
 	.is_mode_seamless = ct3c_is_mode_seamless,
 	.mode_set = ct3c_mode_set,
 	.get_panel_rev = ct3c_get_panel_rev,
