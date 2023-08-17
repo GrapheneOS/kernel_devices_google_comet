@@ -16,6 +16,24 @@
 
 #include "panel/panel-samsung-drv.h"
 
+/**
+ * struct ct3a_panel - panel specific runtime info
+ *
+ * This struct maintains ct3a panel specific runtime info, any fixed details about panel
+ * should most likely go into struct exynos_panel_desc
+ */
+struct ct3a_panel {
+	/** @base: base panel struct */
+	struct exynos_panel base;
+	/**
+	 * @is_pixel_off: pixel-off command is sent to panel. Only sending normal-on or resetting
+	 *		  panel can recover to normal mode after entering pixel-off state.
+	 */
+	bool is_pixel_off;
+};
+
+#define to_spanel(ctx) container_of(ctx, struct ct3a_panel, base)
+
 static const struct drm_dsc_config pps_config = {
 		.line_buf_depth = 9,
 		.bits_per_component = 8,
@@ -85,6 +103,7 @@ static const struct drm_dsc_config pps_config = {
 static const u8 unlock_cmd_f0[] = { 0xF0, 0x5A, 0x5A };
 static const u8 lock_cmd_f0[] = { 0xF0, 0xA5, 0xA5 };
 static const u8 ltps_update[] = { 0xF7, 0x0F };
+static const u8 pixel_off[] = { 0x22 };
 
 static const struct exynos_dsi_cmd ct3a_lp_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_OFF),
@@ -166,18 +185,6 @@ static const struct exynos_dsi_cmd ct3a_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_PAGE_ADDRESS, 0x00, 0x00, 0x08, 0x1B),
 };
 static DEFINE_EXYNOS_CMD_SET(ct3a_init);
-
-/**
- * struct ct3a_panel - panel specific runtime info
- *
- * This struct maintains ct3a panel specific runtime info, any fixed details about panel
- * should most likely go into struct exynos_panel_desc
- */
-struct ct3a_panel {
-	/** @base: base panel struct */
-	struct exynos_panel base;
-};
-#define to_spanel(ctx) container_of(ctx, struct ct3a_panel, base)
 
 static void ct3a_change_frequency(struct exynos_panel *ctx,
 					const struct exynos_panel_mode *pmode)
@@ -302,28 +309,33 @@ static int ct3a_set_op_hz(struct exynos_panel *ctx, unsigned int hz)
 static int ct3a_set_brightness(struct exynos_panel *ctx, u16 br)
 {
 	u16 brightness;
-	u32 max_brightness;
+	struct ct3a_panel *spanel = to_spanel(ctx);
 
-	if (ctx->current_mode && ctx->current_mode->exynos_mode.is_lp_mode) {
+	if (ctx->current_mode->exynos_mode.is_lp_mode) {
 		const struct exynos_panel_funcs *funcs;
 
+		/* don't stay at pixel-off state in AOD, or black screen is possibly seen */
+		if (spanel->is_pixel_off) {
+			EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_ENTER_NORMAL_MODE);
+			spanel->is_pixel_off = false;
+		}
 		funcs = ctx->desc->exynos_panel_func;
 		if (funcs && funcs->set_binned_lp)
 			funcs->set_binned_lp(ctx, br);
 		return 0;
 	}
 
-	if (!ctx->desc->brt_capability) {
-		dev_err(ctx->dev, "no available brightness capability\n");
-		return -EINVAL;
-	}
-
-	max_brightness = ctx->desc->brt_capability->hbm.level.max;
-
-	if (br > max_brightness) {
-		br = max_brightness;
-		dev_warn(ctx->dev, "%s: capped to dbv(%d)\n", __func__,
-			max_brightness);
+	/* Use pixel off command instead of setting DBV 0 */
+	if (!br) {
+		if (!spanel->is_pixel_off) {
+			EXYNOS_DCS_WRITE_TABLE(ctx, pixel_off);
+			spanel->is_pixel_off = true;
+			dev_dbg(ctx->dev, "%s: pixel off instead of dbv 0\n", __func__);
+		}
+		return 0;
+	} else if (br && spanel->is_pixel_off) {
+		EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_ENTER_NORMAL_MODE);
+		spanel->is_pixel_off = false;
 	}
 
 	brightness = (br & 0xFF) << 8 | br >> 8;
@@ -451,6 +463,7 @@ static int ct3a_panel_probe(struct mipi_dsi_device *dsi)
 		return -ENOMEM;
 
 	spanel->base.op_hz = 120;
+	spanel->is_pixel_off = false;
 
 	return exynos_panel_common_init(dsi, &spanel->base);
 }
