@@ -438,7 +438,7 @@
 					"pinctrl";
 				power-up-seq-delays-us =
 					<1000
-					 1000
+					 1500
 					 1000
 					 8000>;
 
@@ -606,7 +606,7 @@
 					"pinctrl";
 				power-up-seq-delays-us =
 					<1000
-					 1000
+					 1500
 					 1000
 					 8000>;
 
