@@ -112,10 +112,9 @@
 	subsys-name = "TS";
 };
 
-&m_ext4_rail {
-	schematic-name = "VBATT_ODPM";
-	shunt-res-uohms = <5000>;
-	subsys-name = "BATT";
+&m_ext5_rail {
+	schematic-name = "VSYS_PWR_CAMERA";
+	subsys-name = "Camera";
 };
 
 /* Replace L15M_SPARE with S9M_VDD_CPUCL0_M */
@@ -123,7 +122,7 @@
 	rail-name = "BUCK9M";
 };
 
-/* Replace S9M_VDD_CPUCL0_M with PPVAR_VBATT_MW */
+/* Replace S9M_VDD_CPUCL0_M with VSYS_PWR_DISPLAY */
 &ch10 {
 	rail-name = "VSEN_C1";
 };
@@ -213,15 +212,19 @@
 };
 
 &s_ext4_rail {
-	schematic-name = "VSYS_PWR_DISPLAY";
-	shunt-res-uohms = <10000>;
-	subsys-name = "Display";
+	schematic-name = "VSYS_PWR_MODEM";
+	shunt-res-uohms = <5000>;
+	subsys-name = "Modem";
 };
 
 &s_ext5_rail {
 	schematic-name = "VSYS_PWR_WLAN_BT";
 	shunt-res-uohms = <10000>;
 	subsys-name = "WLAN-BT";
+};
+
+&s_ext6_rail {
+	shunt-res-uohms = <10000>;
 };
 
 /* Replace L29S_OUTER_DISP_VDDI to L21S_VDD2L_MEM */
