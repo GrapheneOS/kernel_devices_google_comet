@@ -44,10 +44,13 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	#include "zuma-comet-wcharger.dtsi"
+	#include "zuma-wcharger-p9222.dtsi"
 };
 
 &p9222 {
+	status = "okay";
+	pinctrl-0 = <&wc_irq &wc_en>;
+
 	idt,gpio_wlc_en = <&gph1 4 GPIO_ACTIVE_LOW>; /* QI_EN_L */
 	idt,gpio_qi_vbus_en = <&s2mpg14_gpio 5 GPIO_ACTIVE_HIGH>; /* QI_USB_VBUS_EN */
 	idt,gpio_qien = <&gph1 4 GPIO_ACTIVE_LOW>; /* QI_EN_L */

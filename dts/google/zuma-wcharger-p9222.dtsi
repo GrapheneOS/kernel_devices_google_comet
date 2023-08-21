@@ -6,10 +6,11 @@
  * Copyright 2023 Google LLC
  */
 p9222: p9222@61 {
-	dev-name = "p9222";
+	status = "disabled";
 	compatible = "idt,p9222";
 	reg = <0x61>;
-	status = "ok";
+
+	dev-name = "p9222";
 
 	/* Support p9412 GPIO */
 	idt,has_p9412_gpio;
@@ -21,7 +22,6 @@ p9222: p9222@61 {
 	google,epp_dcicl_default_ma = <750000>;
 
 	pinctrl-names = "default";
-	pinctrl-0 = <&wc_irq &wc_en>;
 
 	idt,max_vout_mv = <10000>;  /* max voltage in mV */
 

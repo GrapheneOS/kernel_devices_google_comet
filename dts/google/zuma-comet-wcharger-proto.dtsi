@@ -57,10 +57,13 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	#include "zuma-comet-wcharger.dtsi"
+	#include "zuma-wcharger-p9222.dtsi"
 };
 
 &p9222 {
+	status = "okay";
+	pinctrl-0 = <&wc_irq &wc_en>;
+
 	idt,gpio_wlc_en = <&max77779_sgpio 1 GPIO_ACTIVE_LOW>; /* QI_EN_L */
 	idt,gpio_qien = <&max77779_sgpio 1 GPIO_ACTIVE_LOW>; /* QI_EN_L */
 	idt,irq_det_gpio = <&max77779_sgpio 2 GPIO_ACTIVE_LOW>; /* QI_PDET_OD_L */
