@@ -76,8 +76,6 @@
 
 &max77779_chg {
 	status = "okay";
-
-	google,cop-enabled;
 };
 
 &max77779_sp {
