@@ -46,8 +46,8 @@
 			};
 
 			google_bms {
-				nvmem-names = "6-00500";
-				google,bee-name = "6-00500";
+				nvmem-names = "10-00500";
+				google,bee-name = "10-00500";
 			};
 
 		};

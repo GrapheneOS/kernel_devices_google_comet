@@ -14,8 +14,8 @@
 		__overlay__ {
 
 			google_bms {
-				nvmem-names = "3-00500";
-				google,bee-name = "3-00500";
+				nvmem-names = "10-00500";
+				google,bee-name = "10-00500";
 			};
 
 		};
