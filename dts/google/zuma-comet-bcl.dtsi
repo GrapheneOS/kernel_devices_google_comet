@@ -14,6 +14,23 @@
 	google,power-supply = <&max77779_fg>;
 	batoilo_lower = <1800>;
 	batoilo_upper = <8000>;
+	batoilo2_lower = <3800>;
+	batoilo2_upper = <10000>;
+	batoilo_wlc_trig_lvl = <2200>;
+	batoilo2_wlc_trig_lvl = <5200>;
+	batoilo_trig_lvl = <5000>;
+	batoilo2_trig_lvl = <8000>;
+	batoilo_bat_open_to = <0x3>;    /* 12ms */
+	batoilo2_bat_open_to = <0x8>;   /* 36ms */
+	batoilo_rel = <0x3>;   /* 10ms */
+	batoilo2_rel = <0x3>;   /* 10ms */
+	batoilo_det = <0x3>;   /* 6ms */
+	batoilo2_det = <0x17>;   /* 28ms */
+	uvlo1_rel = <0x2>;   /* 10ms */
+	uvlo2_rel = <0x2>;   /* 10ms */
+	uvlo1_det = <0x1>;   /* 30us */
+	uvlo2_det = <0x1>;   /* 30us */
+
 	interrupt-parent = <&max77779_pmic_irq>;
 	interrupts = <6 IRQ_TYPE_LEVEL_LOW>;
 };
