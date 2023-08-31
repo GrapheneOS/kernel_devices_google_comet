@@ -140,6 +140,30 @@
 	};
 };
 
+&pinctrl_12 {
+	/* GPP8[2] Flashlight Enable */
+	flash_en: flash-en {
+		samsung,pins = "gpp8-2";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_INPUT>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
+		samsung,pin-con-pdn = <EXYNOS_PIN_PDN_PREV>;
+		samsung,pin-pud-pdn = <EXYNOS_PIN_PULL_NONE>;
+	};
+};
+
+&hsi2c_0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	gpios = <&gpp19 0 GPIO_ACTIVE_HIGH &gpp19 1 GPIO_ACTIVE_HIGH>;
+	status = "okay";
+	clock-frequency = <950000>;
+
+	pinctrl-names = "default","on_i2c","off_i2c";
+	pinctrl-0 = <&hsi2c0_bus &flash_en>;
+	pinctrl-1 = <&hsi2c0_bus>;
+	pinctrl-2 = <&hsi2c0_bus>;
+};
+
 &hsi2c_1 {
 	#address-cells = <1>;
 	#size-cells = <0>;

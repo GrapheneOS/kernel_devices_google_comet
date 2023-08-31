@@ -143,6 +143,15 @@
 		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
 		samsung,pin-drv = <ZUMA_PIN_DRV_X1>;
 	};
+
+	/* GPP24[1] Flashlight Enable */
+	flash_en: flash-en {
+		samsung,pins = "gpp24-1";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_INPUT>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
+		samsung,pin-con-pdn = <EXYNOS_PIN_PDN_PREV>;
+		samsung,pin-pud-pdn = <EXYNOS_PIN_PULL_NONE>;
+	};
 };
 
 &hsi2c_0 {
@@ -213,6 +222,19 @@
 	pinctrl-0 = <&hsi2c5_bus_in>;
 	pinctrl-1 = <&hsi2c5_bus>;
 	pinctrl-2 = <&hsi2c5_bus_in>;
+};
+
+&hsi2c_9 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	gpios = <&gpp19 4 GPIO_ACTIVE_HIGH &gpp19 5 GPIO_ACTIVE_HIGH>;
+	status = "okay";
+	clock-frequency = <950000>;
+
+	pinctrl-names = "default","on_i2c","off_i2c";
+	pinctrl-0 = <&hsi2c9_bus &flash_en>;
+	pinctrl-1 = <&hsi2c9_bus>;
+	pinctrl-2 = <&hsi2c9_bus>;
 };
 
 &spi_22 {
