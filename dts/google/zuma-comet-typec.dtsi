@@ -19,8 +19,6 @@
 &max77759tcpc {
 	pinctrl-0 = <&usb_pd_irq>;
 	pullup-supply = <&m_ldo7_reg>;
-	/* Remove when BMS is up */
-	gvotable-lazy-probe;
 	connector {
 		sink-pdos = <PDO_FIXED(5000, 3000,
 				       PDO_FIXED_DATA_SWAP |
