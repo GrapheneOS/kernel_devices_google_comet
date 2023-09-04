@@ -71,6 +71,17 @@
 		vddd-supply = <&disp_vddd>;
 		vci-supply = <&s_ldo8_reg>;
 	};
+	google_ct3d: panel@3 {
+		compatible = "google,ct3d";
+		label = "google-ct3d";
+		channel = <0>;
+
+		/* reset, power */
+		reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
+		vddi-supply = <&s_ldo29_reg>;
+		vddd-supply = <&disp_vddd>;
+		vci-supply = <&s_ldo8_reg>;
+	};
 };
 
 &drmdsim1 {
