@@ -103,19 +103,29 @@ static const struct exynos_dsi_cmd ct3c_lp_off_cmds[] = {
 };
 
 static const struct exynos_dsi_cmd ct3c_lp_low_cmds[] = {
-	EXYNOS_DSI_CMD0(test_key_enable),
-	EXYNOS_DSI_CMD_SEQ(0x91, 0x01), /* NEW Gamma IP Bypass */
-	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x25), /* AOD 10 nit */
-	EXYNOS_DSI_CMD(test_key_disable, 34),
+	/* Proto 1.0 */
+	EXYNOS_DSI_CMD0_REV(test_key_enable, PANEL_REV_PROTO1),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, 0x91, 0x01), /* NEW Gamma IP Bypass */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x25), /* AOD 10 nit */
+	EXYNOS_DSI_CMD_REV(test_key_disable, 34, PANEL_REV_PROTO1),
+
+	/* Proto 1.1 and later */
+	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_GE(PANEL_REV_PROTO1_1),
+		34, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x25), /* AOD 10 nit */
 
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_ON),
 };
 
 static const struct exynos_dsi_cmd ct3c_lp_high_cmds[] = {
-	EXYNOS_DSI_CMD0(test_key_enable),
-	EXYNOS_DSI_CMD_SEQ(0x91, 0x01), /* NEW Gamma IP Bypass */
-	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24), /* AOD 50 nit */
-	EXYNOS_DSI_CMD(test_key_disable, 34),
+	/* Proto 1.0 */
+	EXYNOS_DSI_CMD0_REV(test_key_enable, PANEL_REV_PROTO1),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, 0x91, 0x01), /* NEW Gamma IP Bypass */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24), /* AOD 50 nit */
+	EXYNOS_DSI_CMD_REV(test_key_disable, 34, PANEL_REV_PROTO1),
+
+	/* Proto 1.1 and later */
+	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_GE(PANEL_REV_PROTO1_1),
+		34, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24), /* AOD 50 nit */
 
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_ON),
 };
@@ -175,6 +185,14 @@ static void ct3c_change_frequency(struct exynos_panel *ctx,
 	if (vrefresh > ctx->op_hz) {
 		dev_err(ctx->dev, "invalid freq setting: op_hz=%u, vrefresh=%u\n",
 				ctx->op_hz, vrefresh);
+		return;
+	}
+
+	if (ctx->panel_rev >= PANEL_REV_PROTO1_1) {
+		EXYNOS_DCS_BUF_ADD(ctx, 0x60, (vrefresh == 120) ? 0x08 : 0x00);
+		EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
+
+		dev_info(ctx->dev, "%s: change to %uHz\n", __func__, vrefresh);
 		return;
 	}
 
@@ -249,8 +267,12 @@ static int ct3c_set_op_hz(struct exynos_panel *ctx, unsigned int hz)
 
 	ctx->op_hz = hz;
 
-	ct3c_change_frequency(ctx, pmode);
-	dev_info(ctx->dev, "set op_hz at %u\n", hz);
+	if (ctx->panel_rev == PANEL_REV_PROTO1) {
+		ct3c_change_frequency(ctx, pmode);
+		dev_info(ctx->dev, "set op_hz at %u\n", hz);
+	} else {
+		dev_info(ctx->dev, "Panel rev %d always operates at op_hz=120\n", ctx->panel_rev);
+	}
 
 	return 0;
 }
@@ -308,18 +330,27 @@ static void ct3c_set_hbm_mode(struct exynos_panel *ctx,
 {
 	ctx->hbm_mode = mode;
 
-	/* FGZ mode for Proto 1.0 only */
-	if (ctx->panel_rev <= PANEL_REV_PROTO1) {
+	/* FGZ mode for <= Proto 1.1 only */
+	if (ctx->panel_rev <= PANEL_REV_PROTO1_1) {
 		EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x28, 0xF2);
 		EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xCC); /* 10bit Change */
 
-		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0x18, 0x68);
-		/* FGZ mode enable (IRC off) / FLAT gamma (default, IRC on)  */
-		EXYNOS_DCS_BUF_ADD(ctx, 0x68, IS_HBM_ON_IRC_OFF(ctx->hbm_mode) ? 0x82 : 0x00);
-		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0x19, 0x68);
-		EXYNOS_DCS_BUF_ADD(ctx, 0x68, 0x00, 0x00, 0x00, 0x96, 0xFA, 0x0C, 0x80, 0x00,
-			0x00, 0x0A, 0xD5, 0xFF, 0x94, 0x00, 0x00); /* FGZ mode */
+		if (ctx->panel_rev == PANEL_REV_PROTO1) {
+			EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0x18, 0x68);
+			/* FGZ mode enable (IRC off) / FLAT gamma (default, IRC on)  */
+			EXYNOS_DCS_BUF_ADD(ctx, 0x68, IS_HBM_ON_IRC_OFF(ctx->hbm_mode) ? 0x82 : 0x00);
+
+			EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0x19, 0x68);
+			EXYNOS_DCS_BUF_ADD(ctx, 0x68, 0x00, 0x00, 0x00, 0x96, 0xFA, 0x0C, 0x80, 0x00,
+				0x00, 0x0A, 0xD5, 0xFF, 0x94, 0x00, 0x00); /* FGZ mode */
+		} else {
+			EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0x22, 0x68);
+			if (IS_HBM_ON_IRC_OFF(ctx->hbm_mode))
+				EXYNOS_DCS_BUF_ADD(ctx, 0x68, 0x2D, 0xF1, 0xFF, 0x94); /* FGZ Mode ON */
+			else
+				EXYNOS_DCS_BUF_ADD(ctx, 0x68, 0x00, 0x00, 0xFF, 0x90); /* FGZ Mode OFF */
+		}
 
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00,0x28,0xF2);
 		EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xC4); /* 8bit Change */
