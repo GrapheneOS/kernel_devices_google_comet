@@ -469,7 +469,7 @@ static int ct3a_panel_probe(struct mipi_dsi_device *dsi)
 }
 
 static const struct exynos_display_underrun_param underrun_param = {
-	.te_idle_us = 500,
+	.te_idle_us = 350,
 	.te_var = 1,
 };
 
