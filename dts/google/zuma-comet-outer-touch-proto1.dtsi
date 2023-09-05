@@ -8,6 +8,13 @@
 
 #include "zuma-comet-outer-common-touch.dtsi"
 
+&spi_19 {
+	dma-mode;
+	dmas = <&pdma1 16 &pdma1 17>;
+	swap-mode = <1>;
+};
+
+
 &outer_touch {
 	status = "okay";
 	compatible = "goodix,brl-d";

@@ -19,7 +19,7 @@
 	synaptics,power-delay-ms = <200>;
 	synaptics,irq-gpio = <&gpn1 0 0x2008>; /* IRQF_ONESHOT | IRQF_TRIGGER_LOW */
 	synaptics,irq-on-state = <0>;
-	synaptics,reset-gpio = <&gpp19 1 0>;
+	synaptics,reset-gpio = <&gpp19 2 0>;
 	synaptics,reset-on-state = <0>;
 	synaptics,reset-active-ms = <2>;
 	synaptics,reset-delay-ms = <50>;
@@ -27,11 +27,11 @@
 	synaptics,spi-byte-delay-us = <0>;
 	synaptics,spi-block-delay-us = <0>;
 
-	/*synaptics,panel_map = <&google_ct3d>;
-	synaptics,firmware_names = "synaptics.img";*/
+	synaptics,panel_map = <&google_ct3c>;
+	synaptics,firmware_names = "synaptics.img";
 	synaptics,test_algo = <1>;
 
-	//goog,panel_map = <&google_ct3d 0>;
+	goog,panel_map = <&google_ct3c 0>;
 
 	goog,dev-id = <1>;
 	goog,offload-device-name = "outer";
@@ -317,6 +317,6 @@
 
 };
 
-/*&google_ct3c {
-	touch = <&outer_touch_s>;
-};*/
+&google_ct3c {
+	touch = <&outer_touch>;
+};
