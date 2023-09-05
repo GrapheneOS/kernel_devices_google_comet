@@ -119,10 +119,16 @@
 		samsung,pin-drv = <ZUMA_PIN_DRV_X3>;
 	};
 	sensor_mclk4_out: sensor-mclk4-out {
-		samsung,pin-drv = <ZUMA_PIN_DRV_X5>;
+		samsung,pin-drv = <ZUMA_PIN_DRV_X2>;
 	};
 	sensor_mclk4_fn: sensor-mclk4-fn {
-		samsung,pin-drv = <ZUMA_PIN_DRV_X5>;
+		samsung,pin-drv = <ZUMA_PIN_DRV_X2>;
+	};
+	sensor_mclk5_out: sensor-mclk5-out {
+		samsung,pin-drv = <ZUMA_PIN_DRV_X2>;
+	};
+	sensor_mclk5_fn: sensor-mclk5-fn {
+		samsung,pin-drv = <ZUMA_PIN_DRV_X2>;
 	};
 };
 
