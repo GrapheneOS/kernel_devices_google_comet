@@ -741,13 +741,13 @@ const struct exynos_panel_desc google_ct3c = {
 	.panel_func = &ct3c_drm_funcs,
 	.exynos_panel_func = &ct3c_exynos_funcs,
 	.reg_ctrl_enable = {
-		{PANEL_REG_ID_VDDI, 1},
-		{PANEL_REG_ID_VDDD, 0},
-		{PANEL_REG_ID_VCI, 10},
+		{PANEL_REG_ID_VDDI, 0},
+		{PANEL_REG_ID_VCI, 0},
+		{PANEL_REG_ID_VDDD, 10},
 	},
 	.reg_ctrl_disable = {
-		{PANEL_REG_ID_VCI, 0},
 		{PANEL_REG_ID_VDDD, 0},
+		{PANEL_REG_ID_VCI, 0},
 		{PANEL_REG_ID_VDDI, 0},
 	},
 };
