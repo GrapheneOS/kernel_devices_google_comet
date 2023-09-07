@@ -24,3 +24,8 @@
 #include "zuma-comet-thermal.dtsi"
 #include "zuma-comet-usb.dtsi"
 #include "zumapro-comet-uwb.dtsi"
+#include "zuma-comet-battery-common.dtsi"
+#include "zuma-comet-battery.dtsi"
+#include "zuma-comet-charging.dtsi"
+#include "zuma-comet-wcharger-proto.dtsi"
+#include "zumapro-comet-usecases.dtsi"

@@ -13,6 +13,7 @@
 #include "zuma-comet-battery.dtsi"
 #include "zuma-comet-charging.dtsi"
 #include "zuma-comet-wcharger-proto.dtsi"
+#include "zuma-comet-usecases.dtsi"
 #include "zuma-comet-bcl.dtsi"
 #include "zuma-comet-typec.dtsi"
 #include "google-dts-base/zumapro-board-cp-s5400-sit.dtsi"
