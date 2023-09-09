@@ -30,6 +30,8 @@
 	uvlo2_rel = <0x2>;   /* 10ms */
 	uvlo1_det = <0x1>;   /* 30us */
 	uvlo2_det = <0x1>;   /* 30us */
+	evt_cnt_enable = <0x1>;
+	evt_cnt_rate = <0x0>;   /* 16k */
 
 	interrupt-parent = <&max77779_pmic_irq>;
 	interrupts = <6 IRQ_TYPE_LEVEL_LOW>;
