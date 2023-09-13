@@ -86,6 +86,7 @@ static const struct drm_dsc_config pps_config = {
 static const u8 test_key_enable[] = { 0xF0, 0x5A, 0x5A };
 static const u8 test_key_disable[] = { 0xF0, 0xA5, 0xA5 };
 static const u8 ltps_update[] = { 0xF7, 0x0F };
+static const u8 pixel_off[] = { 0x22 };
 
 static const struct exynos_dsi_cmd ct3c_off_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ_DELAY(MIPI_DCS_SET_DISPLAY_OFF),
@@ -171,6 +172,11 @@ static DEFINE_EXYNOS_CMD_SET(ct3c_init);
 struct ct3c_panel {
 	/** @base: base panel struct */
 	struct exynos_panel base;
+	/**
+	 * @is_pixel_off: pixel-off command is sent to panel. Only sending normal-on or resetting
+	 *		  panel can recover to normal mode after entering pixel-off state.
+	 */
+	bool is_pixel_off;
 };
 #define to_spanel(ctx) container_of(ctx, struct ct3c_panel, base)
 
@@ -297,14 +303,33 @@ static int ct3c_set_brightness(struct exynos_panel *ctx, u16 br)
 {
 	u16 brightness;
 	u32 max_brightness;
+	struct ct3c_panel *spanel = to_spanel(ctx);
 
 	if (ctx->current_mode && ctx->current_mode->exynos_mode.is_lp_mode) {
 		const struct exynos_panel_funcs *funcs;
 
+		/* don't stay at pixel-off state in AOD, or black screen is possibly seen */
+		if (spanel->is_pixel_off) {
+			EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_ENTER_NORMAL_MODE);
+			spanel->is_pixel_off = false;
+		}
 		funcs = ctx->desc->exynos_panel_func;
 		if (funcs && funcs->set_binned_lp)
 			funcs->set_binned_lp(ctx, br);
 		return 0;
+	}
+
+	/* Use pixel off command instead of setting DBV 0 */
+	if (!br) {
+		if (!spanel->is_pixel_off) {
+			EXYNOS_DCS_WRITE_TABLE(ctx, pixel_off);
+			spanel->is_pixel_off = true;
+			dev_dbg(ctx->dev, "%s: pixel off instead of dbv 0\n", __func__);
+		}
+		return 0;
+	} else if (br && spanel->is_pixel_off) {
+		EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_ENTER_NORMAL_MODE);
+		spanel->is_pixel_off = false;
 	}
 
 	if (!ctx->desc->brt_capability) {
@@ -538,6 +563,7 @@ static int ct3c_panel_probe(struct mipi_dsi_device *dsi)
 		Default settings: 60Hz HS
 	*/
 	spanel->base.op_hz = 120;
+	spanel->is_pixel_off = false;
 
 	return exynos_panel_common_init(dsi, &spanel->base);
 }
