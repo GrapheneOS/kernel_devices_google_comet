@@ -651,20 +651,20 @@ const struct brightness_capability ct3c_brightness_capability = {
 		},
 		.percentage = {
 			.min = 0,
-			.max = 68,
+			.max = 78,
 		},
 	},
 	.hbm = {
 		.nits = {
 			.min = 1250,
-			.max = 1850,
+			.max = 1600,
 		},
 		.level = {
 			.min = 3428,
-			.max = 4095,
+			.max = 3818,
 		},
 		.percentage = {
-			.min = 68,
+			.min = 78,
 			.max = 100,
 		},
 	},
@@ -722,7 +722,7 @@ static const struct exynos_panel_funcs ct3c_exynos_funcs = {
 
 const struct exynos_panel_desc google_ct3c = {
 	.data_lane_cnt = 4,
-	.max_brightness = 4095,
+	.max_brightness = 3818,
 	.min_brightness = 2,
 	.dft_brightness = 1268,    /* 140 nits */
 	.brt_capability = &ct3c_brightness_capability,
