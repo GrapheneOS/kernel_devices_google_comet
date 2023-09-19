@@ -9,13 +9,33 @@
  * published by the Free Software Foundation.
  */
 
+#include <drm/drm_vblank.h>
 #include <drm/display/drm_dsc_helper.h>
 #include <linux/debugfs.h>
 #include <linux/module.h>
 #include <linux/thermal.h>
 #include <video/mipi_display.h>
 
+#include "trace/dpu_trace.h"
+#include "trace/panel_trace.h"
 #include "panel/panel-samsung-drv.h"
+
+/**
+ * enum ct3a_panel_feature - features supported by this panel
+ * @FEAT_EARLY_EXIT: early exit from a long frame
+ * @FEAT_OP_NS: normal speed (not high speed)
+ * @FEAT_FRAME_AUTO: automatic (not manual) frame control
+ * @FEAT_MAX: placeholder, counter for number of features
+ *
+ * The following features are correlated, if one or more of them change, the others need
+ * to be updated unconditionally.
+ */
+enum ct3a_panel_feature {
+	FEAT_EARLY_EXIT,
+	FEAT_OP_NS,
+	FEAT_FRAME_AUTO,
+	FEAT_MAX,
+};
 
 /**
  * struct ct3a_panel - panel specific runtime info
@@ -26,6 +46,23 @@
 struct ct3a_panel {
 	/** @base: base panel struct */
 	struct exynos_panel base;
+	/** @feat: software or working correlated features, not guaranteed to be effective in panel */
+	DECLARE_BITMAP(feat, FEAT_MAX);
+	/** @hw_feat: correlated states effective in panel */
+	DECLARE_BITMAP(hw_feat, FEAT_MAX);
+	/** @hw_vrefresh: vrefresh rate effective in panel */
+	u32 hw_vrefresh;
+	/** @hw_idle_vrefresh: idle vrefresh rate effective in panel */
+	u32 hw_idle_vrefresh;
+	/**
+	 * @auto_mode_vrefresh: indicates current minimum refresh rate while in auto mode,
+	 *			if 0 it means that auto mode is not enabled
+	 */
+	u32 auto_mode_vrefresh;
+	/** @force_changeable_te: force changeable TE (instead of fixed) during early exit */
+	bool force_changeable_te;
+	/** @force_changeable_te2: force changeable TE (instead of fixed) for monitoring refresh rate */
+	bool force_changeable_te2;
 	/**
 	 * @is_pixel_off: pixel-off command is sent to panel. Only sending normal-on or resetting
 	 *		  panel can recover to normal mode after entering pixel-off state.
@@ -203,11 +240,342 @@ static const struct exynos_dsi_cmd ct3a_init_cmds[] = {
 };
 static DEFINE_EXYNOS_CMD_SET(ct3a_init);
 
+static u8 ct3a_get_te2_option(struct exynos_panel *ctx)
+{
+	struct ct3a_panel *spanel = to_spanel(ctx);
+
+	if (!ctx || !ctx->current_mode || spanel->force_changeable_te2)
+		return TE2_OPT_CHANGEABLE;
+
+	if (ctx->current_mode->exynos_mode.is_lp_mode ||
+	    (test_bit(FEAT_EARLY_EXIT, spanel->feat) &&
+		spanel->auto_mode_vrefresh < 30))
+		return TE2_OPT_FIXED;
+
+	return TE2_OPT_CHANGEABLE;
+}
+
+static void ct3a_update_te2(struct exynos_panel *ctx)
+{
+	struct ct3a_panel *spanel = to_spanel(ctx);
+	ctx->te2.option = ct3a_get_te2_option(ctx);
+
+	dev_dbg(ctx->dev,
+		"TE2 updated: %s mode, option %s, idle %s\n",
+		test_bit(FEAT_OP_NS, spanel->feat) ? "NS" : "HS",
+		(ctx->te2.option == TE2_OPT_CHANGEABLE) ? "changeable" : "fixed",
+		ctx->panel_idle_vrefresh ? "active" : "inactive");
+}
+
+static inline bool is_auto_mode_allowed(struct exynos_panel *ctx)
+{
+	/* don't want to enable auto mode/early exit during dimming on */
+	if (ctx->dimming_on)
+		return false;
+
+	if (ctx->idle_delay_ms) {
+		const unsigned int delta_ms = panel_get_idle_time_delta(ctx);
+
+		if (delta_ms < ctx->idle_delay_ms)
+			return false;
+	}
+
+	return ctx->panel_idle_enabled;
+}
+
+static u32 ct3a_get_min_idle_vrefresh(struct exynos_panel *ctx,
+				     const struct exynos_panel_mode *pmode)
+{
+	const int vrefresh = drm_mode_vrefresh(&pmode->mode);
+	int min_idle_vrefresh = ctx->min_vrefresh;
+
+	if ((min_idle_vrefresh < 0) || !is_auto_mode_allowed(ctx))
+		return 0;
+
+	if (min_idle_vrefresh <= 1)
+		min_idle_vrefresh = 1;
+	else if (min_idle_vrefresh <= 10)
+		min_idle_vrefresh = 10;
+	else if (min_idle_vrefresh <= 30)
+		min_idle_vrefresh = 30;
+	else
+		return 0;
+
+	if (min_idle_vrefresh >= vrefresh) {
+		dev_dbg(ctx->dev, "min idle vrefresh (%d) higher than target (%d)\n",
+				min_idle_vrefresh, vrefresh);
+		return 0;
+	}
+
+	dev_dbg(ctx->dev, "%s: min_idle_vrefresh %d\n", __func__, min_idle_vrefresh);
+
+	return min_idle_vrefresh;
+}
+
+/**
+ * ct3a_set_panel_feat - configure panel features
+ * @ctx: exynos_panel struct
+ * @vrefresh: refresh rate in manual mode, starting refresh rate in auto mode
+ * @idle_vrefresh: target vrefresh rate in auto mode, 0 if disabling auto mode
+ * @enforce: force to write all of registers even if no feature state changes
+ *
+ * Configure panel features based on the context.
+ */
+static void ct3a_set_panel_feat(struct exynos_panel *ctx,
+	u32 vrefresh, u32 idle_vrefresh, bool enforce)
+{
+	struct ct3a_panel *spanel = to_spanel(ctx);
+	const unsigned long *feat = spanel->feat;
+	u8 val;
+	DECLARE_BITMAP(changed_feat, FEAT_MAX);
+
+	if (enforce) {
+		bitmap_fill(changed_feat, FEAT_MAX);
+	} else {
+		bitmap_xor(changed_feat, feat, spanel->hw_feat, FEAT_MAX);
+		if (bitmap_empty(changed_feat, FEAT_MAX) &&
+			vrefresh == spanel->hw_vrefresh &&
+			idle_vrefresh == spanel->hw_idle_vrefresh) {
+			dev_dbg(ctx->dev, "%s: no changes, skip update\n", __func__);
+			return;
+		}
+	}
+
+	spanel->hw_vrefresh = vrefresh;
+	spanel->hw_idle_vrefresh = idle_vrefresh;
+	bitmap_copy(spanel->hw_feat, feat, FEAT_MAX);
+	dev_dbg(ctx->dev,
+		"op=%s ee=%s fi=%s fps=%u idle_fps=%u\n",
+		test_bit(FEAT_OP_NS, feat) ? "ns" : "hs",
+		test_bit(FEAT_EARLY_EXIT, feat) ? "on" : "off",
+		test_bit(FEAT_FRAME_AUTO, feat) ? "auto" : "manual",
+		vrefresh,
+		idle_vrefresh);
+
+	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
+
+	/* TE setting */
+	if (test_bit(FEAT_EARLY_EXIT, feat) && !spanel->force_changeable_te) {
+		/* Fixed TE */
+		if (ctx->panel_rev < PANEL_REV_EVT1)
+			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x51, 0x51, 0x00, 0x00);
+		else
+			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x51);
+	} else {
+		/* Changeable TE */
+		if (ctx->panel_rev == PANEL_REV_PROTO1)
+			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x00, 0x51, 0x00, 0x00);
+		else if (ctx->panel_rev == PANEL_REV_PROTO1_1 || ctx->panel_rev == PANEL_REV_PROTO1_2)
+			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x04, 0x51, 0x00, 0x00);
+		else
+			EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x04);
+	}
+
+	/*
+	 * Operating Mode: NS or HS
+	 *
+	 * Description: the configs could possibly be overrided by frequency setting,
+	 * depending on FI mode.
+	 */
+	if (test_bit(FEAT_OP_NS, changed_feat)) {
+		/* mode set */
+		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x01);
+		val = test_bit(FEAT_OP_NS, feat) ? 0x18 : 0x00;
+		EXYNOS_DCS_BUF_ADD(ctx, 0x60, val);
+	}
+
+	/*
+	 * Note: the following command sequence should be sent as a whole if one of panel
+	 * state defined by enum panel_state changes or at turning on panel, or unexpected
+	 * behaviors will be seen, e.g. black screen, flicker.
+	 */
+
+	/*
+	 * Early-exit: enable or disable
+	 *
+	 * Description: early-exit sequence overrides some configs HBM set.
+	 */
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x01, 0xBD);
+	val = test_bit(FEAT_EARLY_EXIT, feat) ? 0x01 : 0x81;
+	EXYNOS_DCS_BUF_ADD(ctx, 0xBD, val);
+
+	/*
+	 * Frequency setting: FI, frequency, idle frequency
+	 *
+	 * Description: this sequence possibly overrides some configs early-exit
+	 * and operation set, depending on FI mode.
+	 */
+	if (test_bit(FEAT_FRAME_AUTO, feat)) {
+		if (test_bit(FEAT_OP_NS, feat))
+			EXYNOS_DCS_BUF_ADD(ctx, 0x60, 0x18);
+		else
+			EXYNOS_DCS_BUF_ADD(ctx, 0x60, 0x00);
+		/* frame insertion on */
+		EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0xE3);
+		/* target frequency */
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x13, 0xBD);
+		if (test_bit(FEAT_OP_NS, feat)) {
+			if (idle_vrefresh == 30) {
+				val = 0x04;
+			} else if (idle_vrefresh == 10) {
+				val = 0x14;
+			} else {
+				if (idle_vrefresh != 1)
+					dev_warn(ctx->dev, "%s: unsupported target freq %d (ns)\n",
+						 __func__, idle_vrefresh);
+				/* 1Hz */
+				val = 0xEC;
+			}
+			EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0x00, val);
+		} else {
+			if (idle_vrefresh == 60) {
+				val = 0x02;
+			} else if (idle_vrefresh == 30) {
+				val = 0x06;
+			} else if (idle_vrefresh == 10) {
+				val = 0x16;
+			} else {
+				if (idle_vrefresh != 1)
+					dev_warn(ctx->dev, "%s: unsupported target freq %d (hs)\n",
+						 __func__, idle_vrefresh);
+				/* 1Hz */
+				val = 0xEC;
+			}
+			EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0x00, val);
+		}
+		/* step setting */
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x9E, 0xBD);
+		if (test_bit(FEAT_OP_NS, feat))
+			EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0x00, 0x00, 0x00, 0x04, 0x00, 0x14, 0x00, 0x00);
+		else
+			EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0x00, 0x00, 0x00, 0x02, 0x00, 0x06, 0x00, 0x16);
+
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0xAE, 0xBD);
+		if (test_bit(FEAT_OP_NS, feat))
+			EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0x00, 0x02, 0x00, 0x00);
+		else
+			EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0x00, 0x00, 0x02, 0x00);
+
+		if (ctx->panel_rev >= PANEL_REV_PROTO1_2) {
+			if (test_bit(FEAT_OP_NS, feat)) {
+				if (ctx->panel_rev == PANEL_REV_PROTO1_2)
+					EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x85);
+				else
+					EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x85, 0xBD);
+			} else {
+				if (ctx->panel_rev == PANEL_REV_PROTO1_2)
+					EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x83);
+				else
+					EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x83, 0xBD);
+			}
+			EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0x00);
+		}
+	} else { /* manual */
+		EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0xE1);
+		if (test_bit(FEAT_OP_NS, feat)) {
+			if (vrefresh == 1) {
+				val = 0x1D;
+			} else if (vrefresh == 10) {
+				val = 0x1C;
+			} else if (vrefresh == 30) {
+				val = 0x19;
+			} else {
+				if (vrefresh != 60)
+					dev_warn(ctx->dev,
+						 "%s: unsupported manual freq %d (ns)\n",
+						 __func__, vrefresh);
+				/* 60Hz */
+				val = 0x18;
+			}
+		} else {
+			if (vrefresh == 1) {
+				val = 0x06;
+			} else if (vrefresh == 10) {
+				val = 0x05;
+			} else if (vrefresh == 30) {
+				if (ctx->panel_rev < PANEL_REV_EVT1)
+					val = 0x02;
+				else
+					val = 0x03;
+			} else if (vrefresh == 60) {
+				if (ctx->panel_rev < PANEL_REV_EVT1)
+					val = 0x01;
+				else
+					val = 0x02;
+			} else {
+				if (vrefresh != 120)
+					dev_warn(ctx->dev,
+						 "%s: unsupported manual freq %d (hs)\n",
+						 __func__, vrefresh);
+				/* 120Hz */
+				val = 0x00;
+			}
+		}
+		EXYNOS_DCS_BUF_ADD(ctx, 0x60, val);
+	}
+
+	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);;
+}
+
+/**
+ * ct3a_update_panel_feat - configure panel features with current refresh rate
+ * @ctx: exynos_panel struct
+ * @enforce: force to write all of registers even if no feature state changes
+ *
+ * Configure panel features based on the context without changing current refresh rate
+ * and idle setting.
+ */
+static void ct3a_update_panel_feat(struct exynos_panel *ctx, bool enforce)
+{
+	const struct exynos_panel_mode *pmode = ctx->current_mode;
+	u32 vrefresh = drm_mode_vrefresh(&pmode->mode);
+	struct ct3a_panel *spanel = to_spanel(ctx);
+	u32 idle_vrefresh = spanel->auto_mode_vrefresh;
+
+	ct3a_set_panel_feat(ctx, vrefresh, idle_vrefresh, enforce);
+}
+
+static void ct3a_update_refresh_mode(struct exynos_panel *ctx,
+				const struct exynos_panel_mode *pmode,
+					const u32 idle_vrefresh)
+{
+	struct ct3a_panel *spanel = to_spanel(ctx);
+	u32 vrefresh = drm_mode_vrefresh(&pmode->mode);
+
+	dev_info(ctx->dev, "%s: mode: %s set idle_vrefresh: %u\n", __func__,
+		pmode->mode.name, idle_vrefresh);
+
+	if (idle_vrefresh)
+		set_bit(FEAT_FRAME_AUTO, spanel->feat);
+	else
+		clear_bit(FEAT_FRAME_AUTO, spanel->feat);
+
+	if (vrefresh == 120 || idle_vrefresh)
+		set_bit(FEAT_EARLY_EXIT, spanel->feat);
+	else
+		clear_bit(FEAT_EARLY_EXIT, spanel->feat);
+
+	spanel->auto_mode_vrefresh = idle_vrefresh;
+	/*
+	 * Note: when mode is explicitly set, panel performs early exit to get out
+	 * of idle at next vsync, and will not back to idle until not seeing new
+	 * frame traffic for a while. If idle_vrefresh != 0, try best to guess what
+	 * panel_idle_vrefresh will be soon, and ct3a_update_idle_state() in
+	 * new frame commit will correct it if the guess is wrong.
+	 */
+	ctx->panel_idle_vrefresh = idle_vrefresh;
+	ct3a_set_panel_feat(ctx, vrefresh, idle_vrefresh, false);
+	schedule_work(&ctx->state_notify);
+
+	dev_dbg(ctx->dev, "%s: display state is notified\n", __func__);
+}
+
 static void ct3a_change_frequency(struct exynos_panel *ctx,
 					const struct exynos_panel_mode *pmode)
 {
 	u32 vrefresh = drm_mode_vrefresh(&pmode->mode);
-	u8 val;
+	u32 idle_vrefresh = 0;
 
 	if (!ctx)
 		return;
@@ -218,55 +586,156 @@ static void ct3a_change_frequency(struct exynos_panel *ctx,
 		return;
 	}
 
-	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0xE1);
-	if (ctx->op_hz == 60) {
-		if (vrefresh == 1) {
-			if (ctx->panel_rev < PANEL_REV_PROTO1_2)
-				val = 0x1D;
-			else
-				val = 0x1E;
-		} else if (vrefresh == 10) {
-			val = 0x1C;
-		} else if (vrefresh == 30) {
-			val = 0x19;
-		} else if (vrefresh == 60) {
-			val = 0x18;
-		} else {
-			dev_warn(ctx->dev,
-				"%s: unsupported init freq %uhz, set to default NS freq 60hz\n",
-				__func__, vrefresh);
-			val = 0x18;
-		}
-	} else {
-		if (vrefresh == 1) {
-			val = 0x06;
-		} else if (vrefresh == 10) {
-			val = 0x05;
-		} else if (vrefresh == 30) {
-			if (ctx->panel_rev < PANEL_REV_EVT1)
-				val = 0x02;
-			else
-				val = 0x03;
-		} else if (vrefresh == 60) {
-			if (ctx->panel_rev < PANEL_REV_EVT1)
-				val = 0x01;
-			else
-				val = 0x02;
-		} else if (vrefresh == 120) {
-			val = 0x00;
-		} else {
-			dev_warn(ctx->dev,
-				"%s: unsupported init freq %uhz, set to default HS freq 60hz\n",
-				__func__, vrefresh);
-			val = 0x01;
-		}
-	}
-	EXYNOS_DCS_BUF_ADD(ctx, 0x60, val);
-	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
-	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
+	if (pmode->idle_mode == IDLE_MODE_ON_INACTIVITY)
+		idle_vrefresh = ct3a_get_min_idle_vrefresh(ctx, pmode);
+
+	ct3a_update_refresh_mode(ctx, pmode, idle_vrefresh);
 
 	dev_dbg(ctx->dev, "%s: change to %uHz\n", __func__, vrefresh);
+}
+
+static void ct3a_panel_idle_notification(struct exynos_panel *ctx,
+		u32 display_id, u32 vrefresh, u32 idle_te_vrefresh)
+{
+	char event_string[64];
+	char *envp[] = { event_string, NULL };
+	struct drm_device *dev = ctx->bridge.dev;
+
+	if (!dev) {
+		dev_warn(ctx->dev, "%s: drm_device is null\n", __func__);
+	} else {
+		snprintf(event_string, sizeof(event_string),
+			"PANEL_IDLE_ENTER=%u,%u,%u", display_id, vrefresh, idle_te_vrefresh);
+		kobject_uevent_env(&dev->primary->kdev->kobj, KOBJ_CHANGE, envp);
+	}
+}
+
+static void ct3a_wait_one_vblank(struct exynos_panel *ctx)
+{
+	struct drm_crtc *crtc = NULL;
+
+	if (ctx->exynos_connector.base.state)
+		crtc = ctx->exynos_connector.base.state->crtc;
+
+	DPU_ATRACE_BEGIN(__func__);
+	if (crtc) {
+		int ret = drm_crtc_vblank_get(crtc);
+
+		if (!ret) {
+			drm_crtc_wait_one_vblank(crtc);
+			drm_crtc_vblank_put(crtc);
+		} else {
+			usleep_range(8350, 8500);
+		}
+	} else {
+		usleep_range(8350, 8500);
+	}
+	DPU_ATRACE_END(__func__);
+}
+
+static bool ct3a_set_self_refresh(struct exynos_panel *ctx, bool enable)
+{
+	const struct exynos_panel_mode *pmode = ctx->current_mode;
+	struct ct3a_panel *spanel = to_spanel(ctx);
+	u32 idle_vrefresh;
+
+	dev_dbg(ctx->dev, "%s: %d\n", __func__, enable);
+
+	if (unlikely(!pmode))
+		return false;
+
+	/* self refresh is not supported in lp mode since that always makes use of early exit */
+	if (pmode->exynos_mode.is_lp_mode) {
+		/* set 1Hz while self refresh is active, otherwise clear it */
+		ctx->panel_idle_vrefresh = enable ? 1 : 0;
+		schedule_work(&ctx->state_notify);
+		return false;
+	}
+
+	idle_vrefresh = ct3a_get_min_idle_vrefresh(ctx, pmode);
+
+	if (pmode->idle_mode != IDLE_MODE_ON_SELF_REFRESH) {
+		/*
+		 * if idle mode is on inactivity, may need to update the target fps for auto mode,
+		 * or switch to manual mode if idle should be disabled (idle_vrefresh=0)
+		 */
+		if ((pmode->idle_mode == IDLE_MODE_ON_INACTIVITY) &&
+			(spanel->auto_mode_vrefresh != idle_vrefresh)) {
+			ct3a_update_refresh_mode(ctx, pmode, idle_vrefresh);
+			return true;
+		}
+		return false;
+	}
+
+	if (!enable)
+		idle_vrefresh = 0;
+
+	/* if there's no change in idle state then skip cmds */
+	if (ctx->panel_idle_vrefresh == idle_vrefresh)
+		return false;
+
+	DPU_ATRACE_BEGIN(__func__);
+	ct3a_update_refresh_mode(ctx, pmode, idle_vrefresh);
+
+	if (idle_vrefresh) {
+		const int vrefresh = drm_mode_vrefresh(&pmode->mode);
+
+		ct3a_panel_idle_notification(ctx, 0, vrefresh, 120);
+	} else if (ctx->panel_need_handle_idle_exit) {
+		/*
+		 * after exit idle mode with fixed TE at non-120hz, TE may still keep at 120hz.
+		 * If any layer that already be assigned to DPU that can't be handled at 120hz,
+		 * panel_need_handle_idle_exit will be set then we need to wait one vblank to
+		 * avoid underrun issue.
+		 */
+		dev_dbg(ctx->dev, "wait one vblank after exit idle\n");
+		ct3a_wait_one_vblank(ctx);
+	}
+
+	DPU_ATRACE_END(__func__);
+
+	return true;
+}
+
+static int ct3a_atomic_check(struct exynos_panel *ctx, struct drm_atomic_state *state)
+{
+	struct drm_connector *conn = &ctx->exynos_connector.base;
+	struct drm_connector_state *new_conn_state = drm_atomic_get_new_connector_state(state, conn);
+	struct drm_crtc_state *old_crtc_state, *new_crtc_state;
+	struct ct3a_panel *spanel = to_spanel(ctx);
+
+	if (!ctx->current_mode || drm_mode_vrefresh(&ctx->current_mode->mode) == 120 ||
+	    !new_conn_state || !new_conn_state->crtc)
+		return 0;
+
+	new_crtc_state = drm_atomic_get_new_crtc_state(state, new_conn_state->crtc);
+	old_crtc_state = drm_atomic_get_old_crtc_state(state, new_conn_state->crtc);
+	if (!old_crtc_state || !new_crtc_state || !new_crtc_state->active)
+		return 0;
+
+	if ((spanel->auto_mode_vrefresh && old_crtc_state->self_refresh_active) ||
+	    !drm_atomic_crtc_effectively_active(old_crtc_state)) {
+		struct drm_display_mode *mode = &new_crtc_state->adjusted_mode;
+
+		/* set clock to max refresh rate on self refresh exit or resume due to early exit */
+		mode->clock = mode->htotal * mode->vtotal * 120 / 1000;
+
+		if (mode->clock != new_crtc_state->mode.clock) {
+			new_crtc_state->mode_changed = true;
+			dev_dbg(ctx->dev, "raise mode (%s) clock to 120hz on %s\n",
+				mode->name,
+				old_crtc_state->self_refresh_active ? "self refresh exit" : "resume");
+		}
+	} else if (old_crtc_state->active_changed &&
+		   (old_crtc_state->adjusted_mode.clock != old_crtc_state->mode.clock)) {
+		/* clock hacked in last commit due to self refresh exit or resume, undo that */
+		new_crtc_state->mode_changed = true;
+		new_crtc_state->adjusted_mode.clock = new_crtc_state->mode.clock;
+		dev_dbg(ctx->dev, "restore mode (%s) clock after self refresh exit or resume\n",
+			new_crtc_state->mode.name);
+	}
+
+	return 0;
 }
 
 static void ct3a_update_wrctrld(struct exynos_panel *ctx)
@@ -288,8 +757,14 @@ static void ct3a_update_wrctrld(struct exynos_panel *ctx)
 static void ct3a_set_nolp_mode(struct exynos_panel *ctx,
 			      const struct exynos_panel_mode *pmode)
 {
+	struct ct3a_panel *spanel = to_spanel(ctx);
+	u32 vrefresh = drm_mode_vrefresh(&pmode->mode);
+	u32 idle_vrefresh = spanel->auto_mode_vrefresh;
+
 	if (!is_panel_active(ctx))
 		return;
+
+	DPU_ATRACE_BEGIN(__func__);
 
 	EXYNOS_DCS_BUF_ADD(ctx, MIPI_DCS_SET_DISPLAY_OFF);
 
@@ -302,18 +777,21 @@ static void ct3a_set_nolp_mode(struct exynos_panel *ctx,
 	ct3a_update_wrctrld(ctx);
 	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
 	EXYNOS_DCS_BUF_ADD_SET(ctx, lock_cmd_f0);
+	ct3a_set_panel_feat(ctx, vrefresh, idle_vrefresh,  true);
 	ct3a_change_frequency(ctx, pmode);
 	usleep_range(34000, 34010);
 
 	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, MIPI_DCS_SET_DISPLAY_ON);
+
+	DPU_ATRACE_END(__func__);
 
 	dev_info(ctx->dev, "exit LP mode\n");
 }
 
 static int ct3a_set_op_hz(struct exynos_panel *ctx, unsigned int hz)
 {
-	const struct exynos_panel_mode *pmode = ctx->current_mode;
 	const unsigned int vrefresh = drm_mode_vrefresh(&ctx->current_mode->mode);
+	struct ct3a_panel *spanel = to_spanel(ctx);
 
 	if ((vrefresh > hz) || ((hz != 60) && (hz != 120))) {
 		dev_err(ctx->dev, "invalid op_hz=%u for vrefresh=%u\n",
@@ -321,16 +799,34 @@ static int ct3a_set_op_hz(struct exynos_panel *ctx, unsigned int hz)
 		return -EINVAL;
 	}
 
+	DPU_ATRACE_BEGIN(__func__);
+
 	ctx->op_hz = hz;
+	if (hz == 60)
+		set_bit(FEAT_OP_NS, spanel->feat);
+	else
+		clear_bit(FEAT_OP_NS, spanel->feat);
 
-	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x01);
-	EXYNOS_DCS_BUF_ADD(ctx, 0x60, (hz == 120) ? 0x00 : 0x18);
-	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
-	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
+	if (is_panel_active(ctx))
+		ct3a_update_panel_feat(ctx, false);
 
-	ct3a_change_frequency(ctx, pmode);
-	dev_info(ctx->dev, "set op_hz at %u\n", hz);
+	dev_info(ctx->dev, "%s op_hz at %d\n",
+		is_panel_active(ctx) ? "set" : "cache", hz);
+
+	if (hz == 120) {
+		/*
+		 * We may transfer the frame for the first TE after switching from
+		 * NS to HS mode. The DDIC read speed will change from 60Hz to 120Hz,
+		 * but the DPU write speed will remain the same. In this case,
+		 * underruns would happen. Waiting for an extra vblank here so that
+		 * the frame can be postponed to the next TE to avoid the noises.
+		 */
+		dev_dbg(ctx->dev, "wait one vblank after NS to HS\n");
+		ct3a_wait_one_vblank(ctx);
+	}
+
+	DPU_ATRACE_END(__func__);
+
 	return 0;
 }
 
@@ -369,6 +865,84 @@ static int ct3a_set_brightness(struct exynos_panel *ctx, u16 br)
 	brightness = (br & 0xFF) << 8 | br >> 8;
 
 	return exynos_dcs_set_brightness(ctx, brightness);
+}
+
+static int ct3a_disable(struct drm_panel *panel)
+{
+	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
+	struct ct3a_panel *spanel = to_spanel(ctx);
+	int ret;
+
+	dev_info(ctx->dev, "%s\n", __func__);
+
+	ret = exynos_panel_disable(panel);
+	if (ret)
+		return ret;
+
+	/* panel register state gets reset after disabling hardware */
+	bitmap_clear(spanel->hw_feat, 0, FEAT_MAX);
+	spanel->hw_vrefresh = 60;
+	spanel->hw_idle_vrefresh = 0;
+
+	return 0;
+}
+
+/*
+ * 120hz auto mode takes at least 2 frames to start lowering refresh rate in addition to
+ * time to next vblank. Use just over 2 frames time to consider worst case scenario
+ */
+#define EARLY_EXIT_THRESHOLD_US 17000
+
+/**
+ * ct3a_update_idle_state - update panel auto frame insertion state
+ * @ctx: panel struct
+ *
+ * - update timestamp of switching to manual mode in case its been a while since the
+ *   last frame update and auto mode may have started to lower refresh rate.
+ * - trigger early exit by command if it's changeable TE and no switching delay, which
+ *   could result in fast 120 Hz boost and seeing 120 Hz TE earlier, otherwise disable
+ *   auto refresh mode to avoid lowering frequency too fast.
+ */
+static void ct3a_update_idle_state(struct exynos_panel *ctx)
+{
+	s64 delta_us;
+	struct ct3a_panel *spanel = to_spanel(ctx);
+
+	ctx->panel_idle_vrefresh = 0;
+	if (!test_bit(FEAT_FRAME_AUTO, spanel->feat))
+		return;
+
+	delta_us = ktime_us_delta(ktime_get(), ctx->last_commit_ts);
+	if (delta_us < EARLY_EXIT_THRESHOLD_US) {
+		dev_dbg(ctx->dev, "skip early exit. %lldus since last commit\n",
+			delta_us);
+		return;
+	}
+
+	/* triggering early exit causes a switch to 120hz */
+	ctx->last_mode_set_ts = ktime_get();
+
+	DPU_ATRACE_BEGIN(__func__);
+
+	if (!ctx->idle_delay_ms && spanel->force_changeable_te) {
+		dev_dbg(ctx->dev, "sending early exit out cmd\n");
+		EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
+		EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
+		EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
+	} else {
+		/* turn off auto mode to prevent panel from lowering frequency too fast */
+		ct3a_update_refresh_mode(ctx, ctx->current_mode, 0);
+	}
+
+	DPU_ATRACE_END(__func__);
+}
+
+static void ct3a_commit_done(struct exynos_panel *ctx)
+{
+	if (ctx->current_mode->exynos_mode.is_lp_mode)
+		return;
+
+	ct3a_update_idle_state(ctx);
 }
 
 static void ct3a_set_hbm_mode(struct exynos_panel *ctx,
@@ -415,8 +989,12 @@ static void ct3a_mode_set(struct exynos_panel *ctx,
 static bool ct3a_is_mode_seamless(const struct exynos_panel *ctx,
 					const struct exynos_panel_mode *pmode)
 {
-	/* seamless mode switch is possible if only changing refresh rate */
-	return drm_mode_equal_no_clocks(&ctx->current_mode->mode, &pmode->mode);
+	const struct drm_display_mode *c = &ctx->current_mode->mode;
+	const struct drm_display_mode *n = &pmode->mode;
+
+	/* seamless mode set can happen if active region resolution is same */
+	return (c->vdisplay == n->vdisplay) && (c->hdisplay == n->hdisplay) &&
+	       (c->flags == n->flags);
 }
 
 static void ct3a_debugfs_init(struct drm_panel *panel, struct dentry *root)
@@ -503,6 +1081,8 @@ static int ct3a_enable(struct drm_panel *panel)
 
 	dev_info(ctx->dev, "%s +\n", __func__);
 
+	DPU_ATRACE_BEGIN(__func__);
+
 	exynos_panel_reset(ctx);
 
 	/* TODO: b/277158216, Use 0x9E for PPS setting */
@@ -513,6 +1093,8 @@ static int ct3a_enable(struct drm_panel *panel)
 
 	EXYNOS_DCS_WRITE_SEQ_DELAY(ctx, 120, MIPI_DCS_EXIT_SLEEP_MODE);
 	exynos_panel_send_cmd_set(ctx, &ct3a_init_cmd_set);
+
+	ct3a_update_panel_feat(ctx, true);
 
 	/* dimming and HBM */
 	ct3a_update_wrctrld(ctx);
@@ -526,6 +1108,8 @@ static int ct3a_enable(struct drm_panel *panel)
 		EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
 
 	dev_info(ctx->dev, "%s -\n", __func__);
+
+	DPU_ATRACE_END(__func__);
 
 	return 0;
 }
@@ -554,6 +1138,16 @@ static int spanel_get_brightness(struct thermal_zone_device *tzd, int *temp)
 static struct thermal_zone_device_ops spanel_tzd_ops = {
 	.get_temp = spanel_get_brightness,
 };
+
+static void ct3a_panel_init(struct exynos_panel *ctx)
+{
+#ifdef PANEL_FACTORY_BUILD
+	ctx->panel_idle_enabled = false;
+#endif
+
+	/* re-init panel to decouple bootloader settings */
+	ct3a_set_panel_feat(ctx, 60, 0, true);
+}
 
 static int ct3a_panel_probe(struct mipi_dsi_device *dsi)
 {
@@ -585,6 +1179,10 @@ static int ct3a_panel_probe(struct mipi_dsi_device *dsi)
 static const struct exynos_display_underrun_param underrun_param = {
 	.te_idle_us = 350,
 	.te_var = 1,
+};
+
+static const u32 ct3a_bl_range[] = {
+	94, 180, 270, 360, 3307
 };
 
 static const u16 WIDTH_MM = 147, HEIGHT_MM = 141;
@@ -702,6 +1300,7 @@ static const struct exynos_panel_mode ct3a_modes[] = {
 			.dsc = CT3A_DSC,
 			.underrun_param = &underrun_param,
 		},
+		.idle_mode = IDLE_MODE_ON_SELF_REFRESH,
 	},
 	{
 		.mode = {
@@ -726,6 +1325,7 @@ static const struct exynos_panel_mode ct3a_modes[] = {
 			.dsc = CT3A_DSC,
 			.underrun_param = &underrun_param,
 		},
+		.idle_mode = IDLE_MODE_ON_INACTIVITY,
 	},
 };
 
@@ -787,7 +1387,7 @@ static const struct exynos_panel_mode ct3a_lp_mode = {
 };
 
 static const struct drm_panel_funcs ct3a_drm_funcs = {
-	.disable = exynos_panel_disable,
+	.disable = ct3a_disable,
 	.unprepare = exynos_panel_unprepare,
 	.prepare = exynos_panel_prepare,
 	.enable = ct3a_enable,
@@ -802,11 +1402,16 @@ static const struct exynos_panel_funcs ct3a_exynos_funcs = {
 	.set_binned_lp = exynos_panel_set_binned_lp,
 	.set_dimming_on = ct3a_set_dimming_on,
 	.set_hbm_mode = ct3a_set_hbm_mode,
+	.update_te2 = ct3a_update_te2,
+	.commit_done = ct3a_commit_done,
+	.atomic_check = ct3a_atomic_check,
+	.set_self_refresh = ct3a_set_self_refresh,
 	.set_op_hz = ct3a_set_op_hz,
 	.is_mode_seamless = ct3a_is_mode_seamless,
 	.mode_set = ct3a_mode_set,
 	.get_panel_rev = ct3a_get_panel_rev,
 	.read_id = exynos_panel_read_ddic_id,
+	.panel_init = ct3a_panel_init,
 };
 
 const struct exynos_panel_desc google_ct3a = {
@@ -820,12 +1425,14 @@ const struct exynos_panel_desc google_ct3a = {
 	.max_luminance = 10000000,
 	.max_avg_luminance = 1200000,
 	.min_luminance = 5,
+	.bl_range = ct3a_bl_range,
 	.modes = ct3a_modes,
 	.num_modes = ARRAY_SIZE(ct3a_modes),
 	.lp_mode = &ct3a_lp_mode,
 	.lp_cmd_set = &ct3a_lp_cmd_set,
 	.binned_lp = ct3a_binned_lp,
 	.num_binned_lp = ARRAY_SIZE(ct3a_binned_lp),
+	.is_panel_idle_supported = true,
 	.off_cmd_set = &ct3a_off_cmd_set,
 	.panel_func = &ct3a_drm_funcs,
 	.exynos_panel_func = &ct3a_exynos_funcs,
