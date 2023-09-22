@@ -11,7 +11,7 @@
 #include "zuma-comet-common.dtsi"
 #include "google-dts-base/zuma-typec.dtsi"
 #include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-typec.dtsi"
-#include "google-dts-base/zuma-ripcurrent24-bcl.dtsi"
+#include "google-dts-base/zuma-board-bcl.dtsi"
 #include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-battery.dtsi"
 #include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-charging.dtsi"
 #include "zuma-comet-display-dev1.dtsi"

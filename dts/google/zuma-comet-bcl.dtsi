@@ -6,7 +6,7 @@
  *		https://www.google.com
  */
 
-#include "google-dts-base/zuma-ripcurrent24-bcl.dtsi"
+#include "google-dts-base/zuma-board-bcl.dtsi"
 
 &google_mitigation {
 	google,charger = <&max77779_chg>;
