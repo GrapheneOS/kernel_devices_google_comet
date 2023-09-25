@@ -8,20 +8,6 @@
 
 #include "google-dts-base/zuma-dual-battery-common.dtsi"
 
-/ {
-	fragment@charging {
-		target-path = "/";
-		__overlay__ {
-
-			google_bms {
-				nvmem-names = "10-00500";
-				google,bee-name = "10-00500";
-			};
-
-		};
-	};
-};
-
 &max77779_fg {
 	max77779,dual-battery = "maxfg_base";
 	maxim,fg-data {
