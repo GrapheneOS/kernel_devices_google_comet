@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 
+# zuma dtbo
 zuma_comet_overlays := \
 	zuma-comet-dev1.dtbo \
 	zuma-comet-proto1-samsung-gnss.dtbo \
@@ -8,11 +9,20 @@ zuma_comet_overlays := \
 	zuma-comet-proto1_1-broadcom-gnss.dtbo \
 	zuma-comet-proto1_1-samsung-gnss-wingboard.dtbo
 
+# zuma dtb
 zuma_comet_dtbs := \
 	google-dts-base/zuma-a0-foplp.dtb \
 	google-dts-base/zuma-a0-ipop.dtb \
 	google-dts-base/zuma-b0-foplp.dtb \
 	google-dts-base/zuma-b0-ipop.dtb
+
+# zumapro dtbo
+zumapro_comet_overlays := \
+
+# zumapro dtb
+zumapro_comet_dtbs := \
+	google-dts-base/zumapro-a0-foplp.dtb \
+	google-dts-base/zumapro-a0-ipop.dtb
 
 DTC_FLAGS_zuma-dpm-eng += -a 4096
 DTC_FLAGS_zuma-dpm-user += -a 4096
@@ -56,6 +66,5 @@ endef
 # overlays. For the base dtbs, kbuild will expose the symbols as needed for the
 # overlays. Additionally, kbuild will statically apply the overlay to the base
 # dtb which could be used to verify the overlay applies cleanly.
-#$(call multi_dtbs_overlay, $(comet_dtbs), $(comet_overlays), $(CONFIG_SOC_ZUMA))
 $(call multi_dtbs_overlay, $(zuma_comet_dtbs), $(zuma_comet_overlays), y)
-# $(call multi_dtbs_overlay, $(zumapro_comet_dtbs), $(zumapro_comet_overlays), y)
+$(call multi_dtbs_overlay, $(zumapro_comet_dtbs), $(zumapro_comet_overlays), y)
