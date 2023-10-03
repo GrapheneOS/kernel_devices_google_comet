@@ -83,19 +83,13 @@
 		goodix,sleep-enable;
 		goodix,use-one-binary;
 
-		goog,panel_map = <&google_ct3a 0>;
+		goog,panel_map = <&google_ct3a 0>,<&google_ct3b 1>;
 
-		goog,firmware_names = "goodix_firmware.bin";
-		goodix,firmware-name = "goodix_firmware.bin";
-
-		goog,config_names = "goodix_cfg_group.bin";
-		goodix,config-name = "goodix_cfg_group.bin";
-
-		goog,test_limits_names = "goodix_test_limits.csv";
-		goodix,test-limits-name = "goodix_test_limits.csv";
+		goog,firmware_names = "goodix_firmware.bin","goodix_firmware_b.bin";
+		goog,test_limits_names = "goodix_test_limits.csv","goodix_test_limits_b.csv";
 
 		goog,dev-id = <0>;
-		goog,touch_offload_id = /bits/ 8 <'c' 't' '3' '0'>;
+		goog,touch_offload_id = /bits/ 8 <'c' 't' '3' '0' 'c' 't' '3' '1'>;
 		goog,display-resolution = /bits/ 16 <2152 2076>;
 		goog,channel-num = /bits/ 16 <38 39>;
 
@@ -107,5 +101,8 @@
 };
 
 &google_ct3a {
+	touch = <&inner_touch>;
+};
+&google_ct3b {
 	touch = <&inner_touch>;
 };
