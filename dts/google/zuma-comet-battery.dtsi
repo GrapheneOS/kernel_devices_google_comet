@@ -7,6 +7,7 @@
  */
 
 #include "google-dts-base/zuma-dual-battery-common.dtsi"
+#include "google-dts-base/zuma-max777xx_fwupdate.dtsi"
 
 / {
 	fragment@battery {
@@ -26,3 +27,8 @@
 		#include "zuma-comet-battery-data.dtsi"
 	};
 };
+
+&max77779_fwupdate {
+	status = "okay";
+};
+
