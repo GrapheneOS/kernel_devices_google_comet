@@ -21,9 +21,9 @@
 		2152x2076 {
 			mode-name = "2152x2076";
 			pmsk = <
-				0x2 0xD0 0x2 0x5555 /* p m s k */
+				0x2 0xDB 0x2 0x1355 /* p m s k */
 				>;
-			hs-clk = <1280>;
+			hs-clk = <1346>;
 			esc-clk = <20>;
 		};
 		1080x2424 {
@@ -41,26 +41,7 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	google_ct3b: panel@0 {
-		compatible = "google,ct3b";
-		label = "google-ct3b";
-		channel = <0>;
-
-		/* reset, power */
-		reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
-		vddi-supply = <&s_ldo29_reg>;
-		vddd-supply = <&disp_vddd>;
-		vci-supply = <&s_ldo8_reg>;
-	};
-	panel@1 {
-		compatible = "samsung,emul";
-		label = "samsung-emul";
-		channel = <0>;
-
-		/* reset, power */
-		reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
-	};
-	google_ct3c: panel@2 {
+	google_ct3c: panel@0 {
 		compatible = "google,ct3c";
 		label = "google-ct3c";
 		channel = <0>;
@@ -71,7 +52,7 @@
 		vddd-supply = <&disp_vddd>;
 		vci-supply = <&s_ldo8_reg>;
 	};
-	google_ct3d: panel@3 {
+	google_ct3d: panel@1 {
 		compatible = "google,ct3d";
 		label = "google-ct3d";
 		channel = <0>;
@@ -81,6 +62,14 @@
 		vddi-supply = <&s_ldo29_reg>;
 		vddd-supply = <&disp_vddd>;
 		vci-supply = <&s_ldo8_reg>;
+	};
+	panel@2 {
+		compatible = "samsung,emul";
+		label = "samsung-emul";
+		channel = <0>;
+
+		/* reset, power */
+		reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
 	};
 };
 
@@ -102,7 +91,20 @@
 		vddr-supply = <&disp_vddr_0>;
 		vci-supply = <&m_ldo14_reg>;
 	};
-	panel@1 {
+	google_ct3b: panel@1 {
+		compatible = "google,ct3b";
+		label = "google-ct3b";
+		channel = <0>;
+		/* 0: normal, 1: bottom up, 2: left up, 3: right up */
+		orientation = <2>;
+
+		/* reset, power */
+		reset-gpios = <&gpp0 0 GPIO_ACTIVE_HIGH>;
+		vddi-supply = <&m_ldo24_reg>;
+		vddr-supply = <&disp_vddr_0>;
+		vci-supply = <&m_ldo14_reg>;
+	};
+	panel@2 {
 		compatible = "samsung,emul";
 		label = "samsung-emul";
 		channel = <0>;
