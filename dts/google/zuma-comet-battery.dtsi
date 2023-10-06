@@ -8,6 +8,18 @@
 
 #include "google-dts-base/zuma-dual-battery-common.dtsi"
 
+/ {
+	fragment@battery {
+		target-path = "/";
+		__overlay__ {
+
+			google_battery: google,battery {
+				google,chg-topoff-limits = <250 250 250 500 500 500>;
+			};
+		};
+	};
+};
+
 &max77779_fg {
 	max77779,dual-battery = "maxfg_base";
 	maxim,fg-data {
