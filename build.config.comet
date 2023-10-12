@@ -6,7 +6,7 @@ SOC_DIR=private/google-modules/soc/gs
 KERNEL_DIR=${GKI_KERNEL_DIR:-"aosp-staging"}
 
 # These just need to be relative to the ROOT_DIR
-GKI_FRAGMENT_DEFCONFIG=${DEVICE_DIR}/comet_gki.fragment
+FRAGMENT_CONFIG=${DEVICE_DIR}/comet_gki.fragment
 . ${ROOT_DIR}/${SOC_DIR}/build.config.zumapro
 
 MAKE_GOALS="$MAKE_GOALS
