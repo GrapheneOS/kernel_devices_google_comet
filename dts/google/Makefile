@@ -6,10 +6,7 @@ zuma_comet_overlays := \
 	zuma-comet-proto1-samsung-gnss.dtbo \
 	zuma-comet-proto1-broadcom-gnss.dtbo \
 	zuma-comet-proto1_1-samsung-gnss.dtbo \
-	zuma-comet-proto1_1-broadcom-gnss.dtbo \
-	zumapro-comet-evt1-samsung-gnss.dtbo \
-	zumapro-comet-evt1-broadcom-gnss.dtbo \
-	zumapro-comet-evt1-samsung-gnss-wingboard.dtbo
+	zuma-comet-proto1_1-broadcom-gnss.dtbo
 
 
 # zuma dtb
@@ -21,6 +18,10 @@ zuma_comet_dtbs := \
 
 # zumapro dtbo
 zumapro_comet_overlays := \
+	zumapro-comet-evt1-samsung-gnss.dtbo \
+	zumapro-comet-evt1-broadcom-gnss.dtbo \
+	zumapro-comet-evt1-samsung-gnss-wingboard.dtbo \
+	zumapro-comet-evt1-samsung-gnss-6layerflex.dtbo
 
 # zumapro dtb
 zumapro_comet_dtbs := \

@@ -146,13 +146,14 @@ _ZUMA_COMET_DTBOS = [
     "google/zuma-comet-proto1-broadcom-gnss.dtbo",
     "google/zuma-comet-proto1_1-samsung-gnss.dtbo",
     "google/zuma-comet-proto1_1-broadcom-gnss.dtbo",
-    "google/zumapro-comet-evt1-samsung-gnss.dtbo",
-    "google/zumapro-comet-evt1-broadcom-gnss.dtbo",
-    "google/zumapro-comet-evt1-samsung-gnss-wingboard.dtbo",
 ]
 
 # zumapro dtbo
 _ZUMAPRO_COMET_DTBOS = [
+    "google/zumapro-comet-evt1-samsung-gnss.dtbo",
+    "google/zumapro-comet-evt1-broadcom-gnss.dtbo",
+    "google/zumapro-comet-evt1-samsung-gnss-wingboard.dtbo",
+    "google/zumapro-comet-evt1-samsung-gnss-6layerflex.dtbo",
 ]
 
 kernel_module_group(
