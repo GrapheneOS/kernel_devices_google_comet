@@ -12,4 +12,8 @@
 	max77779,bst-on = <&s2mpg15_gpio 4 GPIO_ACTIVE_HIGH>;  /* EXT_BST_EN */
 	max77779,extbst-ctl = <&s2mpg15_gpio 5 GPIO_ACTIVE_HIGH>; /* OTG_SW_EN */
 	max77779,extbst-mode = <&s2mpg15_gpio 9 GPIO_ACTIVE_HIGH>; /* EXT_BST_MODE */
+
+	/* for OTG related usecase*/
+	max77779,rx-to-rx-otg-en; /* support RX -> RX+OTG */
+	max77779,ext-otg-only; /* use external OTG only */
 };
