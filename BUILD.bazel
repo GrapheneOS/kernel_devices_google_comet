@@ -154,6 +154,8 @@ _ZUMAPRO_COMET_DTBOS = [
     "google/zumapro-comet-evt1-broadcom-gnss.dtbo",
     "google/zumapro-comet-evt1-samsung-gnss-wingboard.dtbo",
     "google/zumapro-comet-evt1-samsung-gnss-6layerflex.dtbo",
+    "google/zumapro-comet-evt1-samsung-gnss-sdc.dtbo",
+    "google/zumapro-comet-evt1-broadcom-gnss-sdc.dtbo",
 ]
 
 kernel_module_group(
