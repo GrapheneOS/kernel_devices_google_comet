@@ -22,6 +22,7 @@
 #include "zuma-comet-camera-pmic.dtsi"
 #include "zuma-comet-camera.dtsi"
 #include "zuma-comet-wlan.dtsi"
+#include "zuma-comet-wcharger-evt-boe.dtsi"
 
 / {
 	board_id = <0x60603>;
