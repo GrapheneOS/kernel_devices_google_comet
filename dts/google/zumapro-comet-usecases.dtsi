@@ -2,7 +2,7 @@
 /*
  * Usecases specific to Comet platforms
  *
- * Copyright 2023 Google LLC
+ * Copyright 2024 Google LLC
  *
  */
 
@@ -10,7 +10,7 @@
 &max77779_chg {
 	/* external boost */
 	max77779,bst-on = <&s2mpg15_gpio 4 GPIO_ACTIVE_HIGH>;  /* EXT_BST_EN */
-	max77779,extbst-ctl = <&s2mpg15_gpio 5 GPIO_ACTIVE_HIGH>; /* OTG_SW_EN */
+	max77779,extbst-ctl = <&max77759_tcpc_gpio 0 GPIO_ACTIVE_HIGH>; /* OTG_PWR_EN */
 	max77779,extbst-mode = <&s2mpg15_gpio 9 GPIO_ACTIVE_HIGH>; /* EXT_BST_MODE */
 
 	/* for OTG related usecase*/
