@@ -144,15 +144,22 @@ static const struct exynos_dsi_cmd ct3c_init_cmds[] = {
 	/* TE on */
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_TEAR_ON),
 
-	/* TE2 setting */
 	EXYNOS_DSI_CMD0(test_key_enable),
+	/* FREQ CON Set */
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x27, 0xF2),
 	EXYNOS_DSI_CMD_SEQ(0xF2, 0x02),
+	/* TE2 setting */
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x69, 0xCB),
 	EXYNOS_DSI_CMD_SEQ(0xCB, 0x10, 0x00, 0x30),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0xE9, 0xCB),
 	EXYNOS_DSI_CMD_SEQ(0xCB, 0x10, 0x00, 0x30),
+	/* TSP Sync set (only for P1.0, P1.1) */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1), 0xB0, 0x0D, 0xB9),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1), 0xB9, 0xB1, 0xA1),
 	EXYNOS_DSI_CMD0(ltps_update),
+	/* ELVSS Caloffset Set (only for P1.1) */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1_1, 0xB0, 0x02, 0x63),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1_1, 0x63, 0x15, 0x0A, 0x15, 0x0A, 0x15, 0x0A),
 	EXYNOS_DSI_CMD0(test_key_disable),
 
 	/* CASET: 1080 */
@@ -194,15 +201,17 @@ static void ct3c_change_frequency(struct exynos_panel *ctx,
 		return;
 	}
 
+	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
+
 	if (ctx->panel_rev >= PANEL_REV_PROTO1_1) {
 		EXYNOS_DCS_BUF_ADD(ctx, 0x60, (vrefresh == 120) ? 0x08 : 0x00);
 		EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
+		EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
 
 		dev_info(ctx->dev, "%s: change to %uHz\n", __func__, vrefresh);
 		return;
 	}
 
-	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
 	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x27, 0xF2);
 
 	if (ctx->op_hz == 60) {
