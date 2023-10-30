@@ -12,6 +12,7 @@
 #include <drm/display/drm_dsc_helper.h>
 #include <linux/debugfs.h>
 #include <linux/module.h>
+#include <linux/thermal.h>
 #include <video/mipi_display.h>
 
 #include "panel/panel-samsung-drv.h"
@@ -30,6 +31,8 @@ struct ct3a_panel {
 	 *		  panel can recover to normal mode after entering pixel-off state.
 	 */
 	bool is_pixel_off;
+	/** @tzd: thermal zone struct */
+	struct thermal_zone_device *tzd;
 };
 
 #define to_spanel(ctx) container_of(ctx, struct ct3a_panel, base)
@@ -454,9 +457,35 @@ static int ct3a_enable(struct drm_panel *panel)
 	return 0;
 }
 
+static int spanel_get_brightness(struct thermal_zone_device *tzd, int *temp)
+{
+	struct ct3a_panel *spanel;
+
+	if (tzd == NULL)
+		return -EINVAL;
+
+	spanel = tzd->devdata;
+
+	if (spanel && spanel->base.bl) {
+		mutex_lock(&spanel->base.bl_state_lock);
+		*temp = (spanel->base.bl->props.state & BL_STATE_STANDBY) ?
+					0 : spanel->base.bl->props.brightness;
+		mutex_unlock(&spanel->base.bl_state_lock);
+	} else {
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static struct thermal_zone_device_ops spanel_tzd_ops = {
+	.get_temp = spanel_get_brightness,
+};
+
 static int ct3a_panel_probe(struct mipi_dsi_device *dsi)
 {
 	struct ct3a_panel *spanel;
+	int ret;
 
 	spanel = devm_kzalloc(&dsi->dev, sizeof(*spanel), GFP_KERNEL);
 	if (!spanel)
@@ -464,6 +493,18 @@ static int ct3a_panel_probe(struct mipi_dsi_device *dsi)
 
 	spanel->base.op_hz = 120;
 	spanel->is_pixel_off = false;
+	spanel->tzd = thermal_zone_device_register("inner_brightness",
+				0, 0, spanel, &spanel_tzd_ops, NULL, 0, 0);
+	if (IS_ERR(spanel->tzd))
+		dev_err(spanel->base.dev, "failed to register inner"
+			" display thermal zone: %ld", PTR_ERR(spanel->tzd));
+
+	ret = thermal_zone_device_enable(spanel->tzd);
+	if (ret) {
+		dev_err(spanel->base.dev, "failed to enable inner"
+					" display thermal zone ret=%d", ret);
+		thermal_zone_device_unregister(spanel->tzd);
+	}
 
 	return exynos_panel_common_init(dsi, &spanel->base);
 }
