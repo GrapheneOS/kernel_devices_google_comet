@@ -220,13 +220,13 @@ static void ct3b_set_dimming_on(struct exynos_panel *ctx,
 				 bool dimming_on)
 {
 	const struct exynos_panel_mode *pmode = ctx->current_mode;
+	ctx->dimming_on = dimming_on;
 
 	if (pmode->exynos_mode.is_lp_mode) {
 		dev_warn(ctx->dev, "in lp mode, skip to update\n");
 		return;
 	}
 
-	ctx->dimming_on = dimming_on;
 	EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_WRITE_CONTROL_DISPLAY,
 					ctx->dimming_on ? 0x28 : 0x20);
 	dev_dbg(ctx->dev, "%s dimming_on=%d\n", __func__, dimming_on);
