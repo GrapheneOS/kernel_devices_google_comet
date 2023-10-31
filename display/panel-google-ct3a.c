@@ -415,7 +415,43 @@ static void ct3a_get_panel_rev(struct exynos_panel *ctx, u32 id)
 	u8 build_code = (id & 0xFF00) >> 8;
 	u8 rev = ((build_code & 0xE0) >> 3) | ((build_code & 0x0C) >> 2);
 
-	exynos_panel_get_panel_rev(ctx, rev);
+	switch (rev) {
+	case 0x00:
+		ctx->panel_rev = PANEL_REV_PROTO1;
+		break;
+	case 0x01:
+		ctx->panel_rev = PANEL_REV_PROTO1_1;
+		break;
+	case 0x02:
+		ctx->panel_rev = PANEL_REV_PROTO1_2;
+		break;
+	case 0x0C:
+		ctx->panel_rev = PANEL_REV_EVT1;
+		break;
+	case 0x0D:
+		ctx->panel_rev = PANEL_REV_EVT1_1;
+		break;
+	case 0x0E:
+		ctx->panel_rev = PANEL_REV_EVT1_2;
+		break;
+	case 0x10:
+		ctx->panel_rev = PANEL_REV_DVT1;
+		break;
+	case 0x11:
+		ctx->panel_rev = PANEL_REV_DVT1_1;
+		break;
+	case 0x14:
+		ctx->panel_rev = PANEL_REV_PVT;
+		break;
+	default:
+		dev_warn(ctx->dev,
+			 "unknown rev from panel (0x%x), default to latest\n",
+			 rev);
+		ctx->panel_rev = PANEL_REV_LATEST;
+		return;
+	}
+
+	dev_info(ctx->dev, "panel_rev: 0x%x\n", ctx->panel_rev);
 }
 
 static int ct3a_enable(struct drm_panel *panel)
