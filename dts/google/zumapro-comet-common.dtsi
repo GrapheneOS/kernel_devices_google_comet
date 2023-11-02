@@ -19,7 +19,6 @@
 #include "zuma-comet-hall-sensor.dtsi"
 #include "zuma-comet-haptics.dtsi"
 #include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-bluetooth.dtsi"
-#include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-bluetooth-offmode.dtsi"
 #include "zuma-comet-pmic.dtsi"
 #include "zuma-comet-thermal.dtsi"
 #include "zuma-comet-usb.dtsi"
