@@ -95,7 +95,6 @@ static const struct exynos_dsi_cmd ct3c_off_cmds[] = {
 static DEFINE_EXYNOS_CMD_SET(ct3c_off);
 
 static const struct exynos_dsi_cmd ct3c_lp_cmds[] = {
-	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_OFF),
 };
 static DEFINE_EXYNOS_CMD_SET(ct3c_lp);
 
@@ -108,13 +107,12 @@ static const struct exynos_dsi_cmd ct3c_lp_low_cmds[] = {
 	EXYNOS_DSI_CMD0_REV(test_key_enable, PANEL_REV_PROTO1),
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, 0x91, 0x01), /* NEW Gamma IP Bypass */
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x25), /* AOD 10 nit */
-	EXYNOS_DSI_CMD_REV(test_key_disable, 34, PANEL_REV_PROTO1),
+	EXYNOS_DSI_CMD0_REV(test_key_disable, PANEL_REV_PROTO1),
 
 	/* Proto 1.1 and later */
-	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_GE(PANEL_REV_PROTO1_1),
-		34, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x25), /* AOD 10 nit */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_PROTO1_1),
+		MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x25), /* AOD 10 nit */
 
-	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_ON),
 };
 
 static const struct exynos_dsi_cmd ct3c_lp_high_cmds[] = {
@@ -122,13 +120,11 @@ static const struct exynos_dsi_cmd ct3c_lp_high_cmds[] = {
 	EXYNOS_DSI_CMD0_REV(test_key_enable, PANEL_REV_PROTO1),
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, 0x91, 0x01), /* NEW Gamma IP Bypass */
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24), /* AOD 50 nit */
-	EXYNOS_DSI_CMD_REV(test_key_disable, 34, PANEL_REV_PROTO1),
+	EXYNOS_DSI_CMD0_REV(test_key_disable, PANEL_REV_PROTO1),
 
 	/* Proto 1.1 and later */
-	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_GE(PANEL_REV_PROTO1_1),
-		34, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24), /* AOD 50 nit */
-
-	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_ON),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_PROTO1_1),
+		MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24), /* AOD 50 nit */
 };
 
 static const struct exynos_binned_lp ct3c_binned_lp[] = {
@@ -488,8 +484,6 @@ static void ct3c_set_nolp_mode(struct exynos_panel *ctx,
 	if (!is_panel_active(ctx))
 		return;
 
-	EXYNOS_DCS_BUF_ADD(ctx, MIPI_DCS_SET_DISPLAY_OFF);
-
 	/* AOD Mode Off Setting */
 	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
 	EXYNOS_DCS_BUF_ADD(ctx, 0x91, 0x02);
@@ -507,8 +501,6 @@ static void ct3c_set_nolp_mode(struct exynos_panel *ctx,
 	/* Additional sleep time to account for TE variability */
 	usleep_range(1000, 1010);
 	DPU_ATRACE_END("ct3c_wait_one_vblank");
-
-	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, MIPI_DCS_SET_DISPLAY_ON);
 
 	dev_info(ctx->dev, "exit LP mode\n");
 }
