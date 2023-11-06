@@ -8,6 +8,7 @@
 /dts-v1/;
 /plugin/;
 
+#define ESIM_NO_CHIP_ENABLE_PIN
 #include "zuma-comet-common.dtsi"
 #include "google-dts-base/zuma-typec.dtsi"
 #include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-typec.dtsi"

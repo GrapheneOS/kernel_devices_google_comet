@@ -64,6 +64,9 @@
                 reg = <0>;
                 spi-max-frequency = <8000000>;
                 esereset-gpio = <&gph1 5 GPIO_ACTIVE_HIGH>;
+#ifndef ESIM_NO_CHIP_ENABLE_PIN
+                ese_chip_enable-gpio = <&gpa0 1 GPIO_ACTIVE_HIGH>;
+#endif
                 power_mode = "ST54L";
                 pinctrl-names = "default","func";
                 pinctrl-0 = <&spi15_bus &spi15_cs &ese1_spi_rst &ese1_spi_miso &ese1_spi_mosi_default>;

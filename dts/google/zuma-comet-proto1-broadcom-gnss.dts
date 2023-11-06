@@ -8,6 +8,7 @@
 /dts-v1/;
 /plugin/;
 
+#define ESIM_NO_CHIP_ENABLE_PIN
 #include "zuma-comet-common.dtsi"
 #include "zuma-comet-battery-common.dtsi"
 #include "zuma-comet-battery.dtsi"
