@@ -16,6 +16,10 @@ zuma_comet_dtbs := \
 	google-dts-base/zuma-b0-foplp.dtb \
 	google-dts-base/zuma-b0-ipop.dtb
 
+DTC_FLAGS_zuma-dpm-eng += -a 4096
+DTC_FLAGS_zuma-dpm-user += -a 4096
+DTC_FLAGS_zuma-dpm-userdebug += -a 4096
+
 # zumapro dtbo
 zumapro_comet_overlays := \
 	zumapro-comet-evt1-samsung-gnss.dtbo \
@@ -30,9 +34,9 @@ zumapro_comet_dtbs := \
 	google-dts-base/zumapro-a0-foplp.dtb \
 	google-dts-base/zumapro-a0-ipop.dtb
 
-DTC_FLAGS_zuma-dpm-eng += -a 4096
-DTC_FLAGS_zuma-dpm-user += -a 4096
-DTC_FLAGS_zuma-dpm-userdebug += -a 4096
+DTC_FLAGS_zumapro-dpm-eng += -a 4096
+DTC_FLAGS_zumapro-dpm-user += -a 4096
+DTC_FLAGS_zumapro-dpm-userdebug += -a 4096
 
 
 # Usage:

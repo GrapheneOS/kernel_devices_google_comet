@@ -237,9 +237,9 @@ kernel_build(
     outs = [
         "google/google-dts-base/zuma-{}.dtb".format(soc_rev)
         for soc_rev in ZUMA_SOC_REVS
-    #] + [
-    #    "google/google-dts-base/zumapro-{}.dtb".format(soc_rev)
-    #    for soc_rev in ZUMAPRO_SOC_REVS
+    ] + [
+        "google/google-dts-base/zumapro-{}.dtb".format(soc_rev)
+        for soc_rev in ZUMAPRO_SOC_REVS
     ] + _ZUMA_COMET_DTBOS + _ZUMAPRO_COMET_DTBOS,
     # TODO(b/221278445): Use real GKI
     base_kernel = select({
