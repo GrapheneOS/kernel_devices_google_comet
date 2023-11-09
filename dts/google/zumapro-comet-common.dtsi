@@ -26,3 +26,4 @@
 #include "zuma-comet-battery-common.dtsi"
 #include "zuma-comet-battery.dtsi"
 #include "zuma-comet-charging.dtsi"
+#include "zumapro-comet-bcl.dtsi"
