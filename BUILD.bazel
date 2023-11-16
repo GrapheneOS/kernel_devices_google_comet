@@ -137,6 +137,8 @@ ZUMA_SOC_REVS = [
 ZUMAPRO_SOC_REVS = [
     "a0-foplp",
     "a0-ipop",
+    "a1-foplp",
+    "a1-ipop",
 ]
 
 # zuma dtbo

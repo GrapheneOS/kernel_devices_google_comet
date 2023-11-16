@@ -32,7 +32,9 @@ zumapro_comet_overlays := \
 # zumapro dtb
 zumapro_comet_dtbs := \
 	google-dts-base/zumapro-a0-foplp.dtb \
-	google-dts-base/zumapro-a0-ipop.dtb
+	google-dts-base/zumapro-a0-ipop.dtb \
+	google-dts-base/zumapro-a1-foplp.dtb \
+	google-dts-base/zumapro-a1-ipop.dtb
 
 DTC_FLAGS_zumapro-dpm-eng += -a 4096
 DTC_FLAGS_zumapro-dpm-user += -a 4096
