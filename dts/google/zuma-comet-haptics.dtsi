@@ -72,7 +72,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&hsi2c9_bus>;
 
-	clock-frequency = <1000000>;
+	clock-frequency = <950000>;
 
 	cs40l26a@43 {
 		compatible = "cirrus,cs40l26a";

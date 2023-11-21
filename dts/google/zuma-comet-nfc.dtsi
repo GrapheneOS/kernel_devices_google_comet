@@ -33,7 +33,7 @@
 	status = "okay";
 	#address-cells = <1>;
 	#size-cells = <0>;
-	clock-frequency = <400000>;
+	clock-frequency = <950000>;
 	st21nfc@8 {
 		compatible = "st,st21nfc";
 		reg = <0x08>;
