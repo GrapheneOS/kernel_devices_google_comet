@@ -9,7 +9,6 @@
 
 #include "zuma-comet-aoc.dtsi"
 #include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-gsa-gsc.dtsi"
-#include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-pmic.dtsi"
 #include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-touch.dtsi"
 #include "google-dts-base/zuma-board-bluetooth.dtsi"
 #include "zuma-comet-display.dtsi"
@@ -19,7 +18,6 @@
 #include "zuma-comet-hall-sensor.dtsi"
 #include "zuma-comet-haptics.dtsi"
 #include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-bluetooth.dtsi"
-#include "zuma-comet-pmic.dtsi"
 #include "zuma-comet-thermal.dtsi"
 #include "zuma-comet-usb.dtsi"
 #include "zumapro-comet-uwb.dtsi"
