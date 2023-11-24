@@ -17,9 +17,8 @@
                compatible = "samsung,eusb-repeater";
                reg = <0x3E>;
                status = "okay";
-               pinctrl-names = "power_off", "power_on";
-               pinctrl-0 = <&eusb_power_off>;
-               pinctrl-1 = <&eusb_power_on>;
+               pinctrl-names = "init_state";
+               pinctrl-0 = <&eusb_init_state>;
                eusb,gpio_eusb_resetb = <&gpp21 3 GPIO_ACTIVE_LOW>;
                repeater_tune_param = <&eusb_repeater_tune>;
        };
