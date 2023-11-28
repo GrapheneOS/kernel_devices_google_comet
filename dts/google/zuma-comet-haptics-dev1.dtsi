@@ -8,7 +8,7 @@
 */
 
 #include <dt-bindings/gpio/gpio.h>
-#include <dt-bindings/pinctrl/samsung.h>
+#include <arm64/exynos/exynos-pinctrl.h>
 
 /delete-node/ &cs40l26_codec;
 /delete-node/ &dai_be_haptic_rx_codec;

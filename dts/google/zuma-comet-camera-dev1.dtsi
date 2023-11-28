@@ -9,7 +9,7 @@
 #include <dt-bindings/clock/zuma.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/lwis/platform/zuma/tof.h>
-#include <dt-bindings/pinctrl/samsung.h>
+#include <arm64/exynos/exynos-pinctrl.h>
 
 &slg51002_ldo1 {
 	regulator-min-microvolt = <2900000>;
