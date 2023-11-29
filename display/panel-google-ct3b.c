@@ -9,6 +9,7 @@
 #include <linux/module.h>
 #include <linux/of_platform.h>
 #include <linux/swab.h>
+#include <linux/thermal.h>
 #include <video/mipi_display.h>
 
 #include "panel/panel-samsung-drv.h"
@@ -27,6 +28,8 @@
 struct ct3b_panel {
 	/** @base: base panel struct */
 	struct exynos_panel base;
+	/** @tzd: thermal zone struct */
+	struct thermal_zone_device *tzd;
 };
 
 #define to_spanel(ctx) container_of(ctx, struct ct3b_panel, base)
@@ -592,6 +595,31 @@ static const struct exynos_panel_mode ct3b_lp_mode = {
 	}
 };
 
+static int spanel_get_brightness(struct thermal_zone_device *tzd, int *temp)
+{
+	struct ct3b_panel *spanel;
+
+	if (tzd == NULL)
+		return -EINVAL;
+
+	spanel = tzd->devdata;
+
+	if (spanel && spanel->base.bl) {
+		mutex_lock(&spanel->base.bl_state_lock);
+		*temp = (spanel->base.bl->props.state & BL_STATE_STANDBY) ?
+					0 : spanel->base.bl->props.brightness;
+		mutex_unlock(&spanel->base.bl_state_lock);
+	} else {
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static struct thermal_zone_device_ops spanel_tzd_ops = {
+	.get_temp = spanel_get_brightness,
+};
+
 static void ct3b_debugfs_init(struct drm_panel *panel, struct dentry *root)
 {
 	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
@@ -623,10 +651,24 @@ static void ct3b_panel_init(struct exynos_panel *ctx)
 static int ct3b_panel_probe(struct mipi_dsi_device *dsi)
 {
 	struct ct3b_panel *spanel;
+	int ret;
 
 	spanel = devm_kzalloc(&dsi->dev, sizeof(*spanel), GFP_KERNEL);
 	if (!spanel)
 		return -ENOMEM;
+
+	spanel->tzd = thermal_zone_device_register("inner_brightness",
+				0, 0, spanel, &spanel_tzd_ops, NULL, 0, 0);
+	if (IS_ERR(spanel->tzd))
+		dev_err(spanel->base.dev, "failed to register inner"
+			" display thermal zone: %ld", PTR_ERR(spanel->tzd));
+
+	ret = thermal_zone_device_enable(spanel->tzd);
+	if (ret) {
+		dev_err(spanel->base.dev, "failed to enable inner"
+					" display thermal zone ret=%d", ret);
+		thermal_zone_device_unregister(spanel->tzd);
+	}
 
 	return exynos_panel_common_init(dsi, &spanel->base);
 }
