@@ -45,6 +45,9 @@
 	goog,default-grip-disabled;
 	goog,default-palm-disabled;
 	goog,tbn-enabled;
+	goog,manual-heatmap-from-irq;
+	goog,v4l2-enabled;
+	goog,offload-enabled;
 
 	synaptics,pt05_high_name = "synaptics,pt05_high","synaptics,pt05_high_b";
 	synaptics,pt05_low_name = "synaptics,pt05_low","synaptics,pt05_low_b";
