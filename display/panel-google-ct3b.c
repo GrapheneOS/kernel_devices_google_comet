@@ -367,8 +367,36 @@ static void ct3b_get_panel_rev(struct exynos_panel *ctx, u32 id)
 	const u8 build_code = (id & 0xFF00) >> 8;
 	const u8 main = (build_code & 0xE0) >> 3;
 	const u8 sub = (build_code & 0x0C) >> 2;
+	const u8 rev = main | sub;
 
-	exynos_panel_get_panel_rev(ctx, main | sub);
+	switch (rev) {
+	case 0x04:
+		ctx->panel_rev = PANEL_REV_EVT1;
+		break;
+	case 0x05:
+		ctx->panel_rev = PANEL_REV_EVT1_1;
+		break;
+	case 0x06:
+		ctx->panel_rev = PANEL_REV_EVT1_2;
+		break;
+	case 0x08:
+		ctx->panel_rev = PANEL_REV_DVT1;
+		break;
+	case 0x09:
+		ctx->panel_rev = PANEL_REV_DVT1_1;
+		break;
+	case 0x10:
+		ctx->panel_rev = PANEL_REV_PVT;
+		break;
+	default:
+		dev_warn(ctx->dev,
+			 "unknown rev from panel (0x%x), default to latest\n",
+			 rev);
+		ctx->panel_rev = PANEL_REV_LATEST;
+		return;
+	}
+
+	dev_info(ctx->dev, "panel_rev: 0x%x\n", ctx->panel_rev);
 }
 
 static int ct3b_read_id(struct exynos_panel *ctx)

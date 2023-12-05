@@ -464,10 +464,10 @@ static void ct3a_get_panel_rev(struct exynos_panel *ctx, u32 id)
 	case 0x0C:
 		ctx->panel_rev = PANEL_REV_EVT1;
 		break;
-	case 0x0D:
+	case 0x0E:
 		ctx->panel_rev = PANEL_REV_EVT1_1;
 		break;
-	case 0x0E:
+	case 0x0F:
 		ctx->panel_rev = PANEL_REV_EVT1_2;
 		break;
 	case 0x10:
