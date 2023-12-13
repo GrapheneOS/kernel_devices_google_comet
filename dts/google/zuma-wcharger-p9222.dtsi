@@ -28,6 +28,7 @@ p9222: p9222@61 {
 
 	idt,max_vout_mv = <10000>;  /* max voltage in mV */
 
+	google,magsafe-optimized;
 	google,q_value = <55>;
 	google,tx2356_q = <40>;
 	google,rf_value = <91>;
