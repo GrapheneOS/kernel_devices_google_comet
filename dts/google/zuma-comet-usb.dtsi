@@ -84,7 +84,7 @@
 		status = "okay";
 		pinctrl-names = "init_state";
 		pinctrl-0 = <&eusb_init_state>;
-		eusb,gpio_eusb_resetb = <&gph1 0 GPIO_ACTIVE_LOW>;
 		repeater_tune_param = <&eusb_repeater_tune>;
+		vdd33-supply = <&m_ldo19_reg>;
        };
 };
