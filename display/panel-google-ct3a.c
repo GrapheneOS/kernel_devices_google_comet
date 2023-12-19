@@ -1101,6 +1101,18 @@ static void ct3a_get_panel_rev(struct exynos_panel *ctx, u32 id)
 	dev_info(ctx->dev, "panel_rev: 0x%x\n", ctx->panel_rev);
 }
 
+static void ct3a_panel_reset(struct exynos_panel *ctx)
+{
+	dev_dbg(ctx->dev, "%s +\n", __func__);
+
+	gpiod_set_value(ctx->reset_gpio, 1);
+	usleep_range(10000, 10010);
+
+	dev_dbg(ctx->dev, "%s -\n", __func__);
+
+	exynos_panel_init(ctx);
+}
+
 static int ct3a_enable(struct drm_panel *panel)
 {
 	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
@@ -1116,7 +1128,7 @@ static int ct3a_enable(struct drm_panel *panel)
 
 	DPU_ATRACE_BEGIN(__func__);
 
-	exynos_panel_reset(ctx);
+	ct3a_panel_reset(ctx);
 
 	/* TODO: b/277158216, Use 0x9E for PPS setting */
 	/* DSC related configuration */
@@ -1470,13 +1482,15 @@ const struct exynos_panel_desc google_ct3a = {
 	.exynos_panel_func = &ct3a_exynos_funcs,
 	.reg_ctrl_enable = {
 		{PANEL_REG_ID_VDDI, 1},
-		{PANEL_REG_ID_VDDR, 0},
-		{PANEL_REG_ID_VCI, 10},
+		{PANEL_REG_ID_VCI,  0},
+		{PANEL_REG_ID_VDDR, 10},
+	},
+	.reg_ctrl_pre_disable = {
+		{PANEL_REG_ID_VDDR, 1},
 	},
 	.reg_ctrl_disable = {
-		{PANEL_REG_ID_VDDR, 1},
 		{PANEL_REG_ID_VDDI, 1},
-		{PANEL_REG_ID_VCI, 0},
+		{PANEL_REG_ID_VCI, 15},
 	},
 };
 
