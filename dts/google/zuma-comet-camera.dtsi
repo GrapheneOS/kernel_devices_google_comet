@@ -160,6 +160,7 @@
 	gpios = <&gpp19 0 GPIO_ACTIVE_HIGH &gpp19 1 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 	clock-frequency = <950000>;
+	samsung,no_lose_arbitration;
 	samsung,reset-before-trans;
 
 	pinctrl-names = "default","on_i2c","off_i2c";
@@ -174,6 +175,7 @@
 	gpios = <&gpp2 0 GPIO_ACTIVE_HIGH &gpp2 1 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 	clock-frequency = <950000>;
+	samsung,no_lose_arbitration;
 	samsung,reset-before-trans;
 
 	pinctrl-names = "default","on_i2c","off_i2c";
@@ -188,6 +190,7 @@
 	gpios = <&gpp4 0 GPIO_ACTIVE_HIGH &gpp4 1 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 	clock-frequency = <950000>;
+	samsung,no_lose_arbitration;
 	samsung,reset-before-trans;
 
 	pinctrl-names = "default","on_i2c","off_i2c";
@@ -202,6 +205,7 @@
 	gpios = <&gpp6 0 GPIO_ACTIVE_HIGH &gpp6 1 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 	clock-frequency = <950000>;
+	samsung,no_lose_arbitration;
 	samsung,reset-before-trans;
 
 	pinctrl-names = "default","on_i2c","off_i2c";
@@ -216,6 +220,7 @@
 	gpios = <&gpp10 0 GPIO_ACTIVE_HIGH &gpp10 1 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 	clock-frequency = <950000>;
+	samsung,no_lose_arbitration;
 	samsung,reset-before-trans;
 
 	pinctrl-names = "default","on_i2c","off_i2c";
@@ -230,6 +235,7 @@
 	gpios = <&gpp19 4 GPIO_ACTIVE_HIGH &gpp19 5 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 	clock-frequency = <950000>;
+	samsung,no_lose_arbitration;
 
 	pinctrl-names = "default","on_i2c","off_i2c";
 	pinctrl-0 = <&hsi2c9_bus &flash_en>;
