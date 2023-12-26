@@ -99,10 +99,6 @@ static const struct exynos_dsi_cmd ct3c_lp_cmds[] = {
 };
 static DEFINE_EXYNOS_CMD_SET(ct3c_lp);
 
-static const struct exynos_dsi_cmd ct3c_lp_off_cmds[] = {
-	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_OFF),
-};
-
 static const struct exynos_dsi_cmd ct3c_lp_low_cmds[] = {
 	/* Proto 1.0 */
 	EXYNOS_DSI_CMD0_REV(test_key_enable, PANEL_REV_PROTO1),
@@ -129,7 +125,6 @@ static const struct exynos_dsi_cmd ct3c_lp_high_cmds[] = {
 };
 
 static const struct exynos_binned_lp ct3c_binned_lp[] = {
-	BINNED_LP_MODE("off", 0, ct3c_lp_off_cmds),
 	/* low threshold 40 nits */
 	BINNED_LP_MODE_TIMING("low", 716, ct3c_lp_low_cmds,
 			      12, 12 + 50),
@@ -672,11 +667,11 @@ static int ct3c_enable(struct drm_panel *panel)
 	/* dimming and HBM */
 	ct3c_update_wrctrld(ctx);
 
-	/* display on */
 	if (pmode->exynos_mode.is_lp_mode)
 		exynos_panel_set_lp_mode(ctx, pmode);
-	else
-		EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
+
+	/* display on */
+	EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
 
 	return 0;
 }
