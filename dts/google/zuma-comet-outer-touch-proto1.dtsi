@@ -52,7 +52,6 @@
 
 	goog,dev-id = <1>;
 	goog,offload-device-name = "outer";
-	goog,touch_offload_id = /bits/ 8 <'c' 't' '3' '1'>;
 	goog,display-resolution = /bits/ 16 <1080 2424>;
 	goog,channel-num = /bits/ 16 <16 36>;
 

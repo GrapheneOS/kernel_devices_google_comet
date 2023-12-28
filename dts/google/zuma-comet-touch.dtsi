@@ -92,7 +92,7 @@
 		goog,offload-caps-scan-types = /bits/ 16 <0xC0>;
 		goog,offload-caps-context-channel-types = /bits/ 16 <0x0100>;
 		goog,offload-caps-coord-filter;
-		goog,touch_offload_id = /bits/ 8 <'c' 't' '3' '0' 'c' 't' '3' '1'>;
+		goog,touch_offload_ids = /bits/ 8 <'c' 't' '3' '0' 'c' 't' '3' '1'>;
 		goog,display-resolution = /bits/ 16 <2152 2076>;
 		goog,channel-num = /bits/ 16 <38 39>;
 		goog,offload-enabled;
