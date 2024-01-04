@@ -65,8 +65,8 @@ static const struct exynos_dsi_cmd ct3d_lp_high_cmds[] = {
 static const struct exynos_binned_lp ct3d_binned_lp[] = {
 	BINNED_LP_MODE("off", 0, ct3d_lp_off_cmds),
 	/* rising = 0, falling = 32 */
-	BINNED_LP_MODE_TIMING("low", 332, ct3d_lp_low_cmds, 0, 32),
-	BINNED_LP_MODE_TIMING("high", 3574, ct3d_lp_high_cmds, 0, 32),
+	BINNED_LP_MODE_TIMING("low", 871, ct3d_lp_low_cmds, 0, 32),
+	BINNED_LP_MODE_TIMING("high", 3628, ct3d_lp_high_cmds, 0, 32),
 };
 
 static const struct exynos_dsi_cmd ct3d_off_cmds[] = {

@@ -157,8 +157,8 @@ static const struct exynos_dsi_cmd ct3a_lp_high_cmds[] = {
 
 static const struct exynos_binned_lp ct3a_binned_lp[] = {
 	/* low threshold 40 nits */
-	BINNED_LP_MODE("low", 766, ct3a_lp_low_cmds),
-	BINNED_LP_MODE("high", 3307, ct3a_lp_high_cmds)
+	BINNED_LP_MODE("low", 689, ct3a_lp_low_cmds),
+	BINNED_LP_MODE("high", 2988, ct3a_lp_high_cmds)
 };
 
 static const struct exynos_dsi_cmd ct3a_off_cmds[] = {
