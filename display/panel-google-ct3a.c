@@ -196,6 +196,10 @@ static const struct exynos_dsi_cmd ct3a_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x24, 0xF8),
 	EXYNOS_DSI_CMD_SEQ(0xF8, 0x05),
 
+	/* HLPM transition preset*/
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1), 0xB0, 0x00, 0x03, 0xBB),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1), 0xBB, 0x45, 0x0E),
+
 	EXYNOS_DSI_CMD0(lock_cmd_f0),
 };
 static DEFINE_EXYNOS_CMD_SET(ct3a_init);
@@ -722,9 +726,6 @@ static void ct3a_set_lp_mode(struct exynos_panel *ctx, const struct exynos_panel
 
 	DPU_ATRACE_BEGIN(__func__);
 
-	EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_OFF);
-	usleep_range(17000, 17010);
-
 	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
 
 	if (ctx->panel_rev == PANEL_REV_PROTO1_1) {
@@ -763,8 +764,6 @@ static void ct3a_set_lp_mode(struct exynos_panel *ctx, const struct exynos_panel
 	EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0x01);
 	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
-	usleep_range(17000, 17010);
-	EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
 
 	spanel->hw_vrefresh = 30;
 
@@ -785,7 +784,6 @@ static void ct3a_set_nolp_mode(struct exynos_panel *ctx,
 
 	DPU_ATRACE_BEGIN(__func__);
 
-	EXYNOS_DCS_BUF_ADD(ctx, MIPI_DCS_SET_DISPLAY_OFF);
 	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
 	/* manual mode */
 	EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0xE1);
@@ -809,12 +807,10 @@ static void ct3a_set_nolp_mode(struct exynos_panel *ctx,
 	}
 	ct3a_update_wrctrld(ctx);
 	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
-	EXYNOS_DCS_BUF_ADD_SET(ctx, lock_cmd_f0);
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
+	usleep_range(34000, 34010);
 	ct3a_set_panel_feat(ctx, vrefresh, idle_vrefresh,  true);
 	ct3a_change_frequency(ctx, pmode);
-	usleep_range(34000, 34010);
-
-	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, MIPI_DCS_SET_DISPLAY_ON);
 
 	DPU_ATRACE_END(__func__);
 
