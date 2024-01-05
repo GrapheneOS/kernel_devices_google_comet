@@ -34,6 +34,7 @@ struct ct3b_panel {
 
 #define to_spanel(ctx) container_of(ctx, struct ct3b_panel, base)
 static const struct exynos_dsi_cmd ct3b_lp_cmds[] = {
+	EXYNOS_DSI_CMD_SEQ(0x2F, 0x00),
 	/* enter AOD */
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_ENTER_IDLE_MODE),
 };
