@@ -37,11 +37,18 @@ struct ct3d_panel {
 static const struct exynos_dsi_cmd ct3d_lp_cmds[] = {
 	/* Disable the Black insertion in AoD */
 	EXYNOS_DSI_CMD_SEQ(0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00),
+	EXYNOS_DSI_CMD_SEQ(0xC0, 0x54),
 
 	/* disable dimming */
 	EXYNOS_DSI_CMD_SEQ(0x53, 0x20),
 	/* enter AOD */
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_ENTER_IDLE_MODE),
+	/* Settings AOD Hclk */
+	EXYNOS_DSI_CMD_SEQ(0xFF, 0xAA, 0x55, 0xA5, 0x81),
+	EXYNOS_DSI_CMD_SEQ(0x6F, 0x0E),
+	EXYNOS_DSI_CMD_SEQ(0xF5, 0x20),
+	/* Lock TE2 30Hz */
+	EXYNOS_DSI_CMD_SEQ(0x5A, 0x04),
 };
 static DEFINE_EXYNOS_CMD_SET(ct3d_lp);
 
@@ -53,7 +60,10 @@ static const struct exynos_dsi_cmd ct3d_lp_off_cmds[] = {
 static const struct exynos_dsi_cmd ct3d_lp_low_cmds[] = {
 	/* 10 nit */
 	EXYNOS_DSI_CMD_SEQ(0x6F, 0x04),
-	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x03, 0x33),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1_1),
+				MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x07, 0xB2),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1_1),
+				MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x03, 0x33),
 };
 
 static const struct exynos_dsi_cmd ct3d_lp_high_cmds[] = {
@@ -80,10 +90,6 @@ static const struct exynos_dsi_cmd ct3d_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00),
 	EXYNOS_DSI_CMD_SEQ(0x6F, 0x1B),
 	EXYNOS_DSI_CMD_SEQ(0xBA, 0x18),
-
-	/* AOD mode common command */
-	EXYNOS_DSI_CMD_SEQ(0xC0, 0x54),
-	EXYNOS_DSI_CMD_SEQ(0x5A, 0x04),
 
 	/* CMD2, Page1 */
 	EXYNOS_DSI_CMD_SEQ(0xF0, 0x55, 0xAA, 0x52, 0x08, 0x01),
@@ -133,7 +139,7 @@ static const struct exynos_dsi_cmd ct3d_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xFF, 0xAA, 0x55, 0xA5, 0x00),
 
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_TEAR_SCANLINE, 0x00, 0x00),
-	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_TEAR_ON, 0x00, 0x20),
+	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_TEAR_ON, 0x00, 0x2D),
 	/* BC Dimming OFF */
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x20),
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_COLUMN_ADDRESS, 0x00, 0x00, 0x04, 0x37),
@@ -156,7 +162,7 @@ static DEFINE_EXYNOS_CMD_SET(ct3d_init);
 static void ct3d_update_te2(struct exynos_panel *ctx)
 {
 	struct exynos_panel_te2_timing timing;
-	u8 width = 0x20; /* default width */
+	u8 width = 0x2D; /* default width */
 	u32 rising = 0, falling;
 	int ret;
 
@@ -282,7 +288,12 @@ static void ct3d_set_nolp_mode(struct exynos_panel *ctx,
 
 	/* exit AOD */
 	EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xC0, 0x54);
 	EXYNOS_DCS_BUF_ADD(ctx, MIPI_DCS_EXIT_IDLE_MODE);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xFF, 0xAA, 0x55, 0xA5, 0x81);
+	EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x0E);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xF5, 0x2B);
+	EXYNOS_DCS_BUF_ADD(ctx, 0x5A, 0x04);
 	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, MIPI_DCS_WRITE_CONTROL_DISPLAY,
 					ctx->dimming_on ? 0x28 : 0x20);
 
