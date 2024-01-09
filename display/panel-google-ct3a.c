@@ -1436,6 +1436,80 @@ static const struct drm_panel_funcs ct3a_drm_funcs = {
 	.debugfs_init = ct3a_debugfs_init,
 };
 
+
+static const struct exynos_brightness_configuration ct3a_btr_configs[] = {
+	{
+		.panel_rev = PANEL_REV_EVT1_1 | PANEL_REV_LATEST,
+		.dft_brightness = 1223,    /* 140 nits brightness */
+		.brt_capability = {
+			.normal = {
+				.nits = {
+					.min = 2,
+					.max = 1000,
+				},
+				.level = {
+					.min = 157,
+					.max = 2988,
+				},
+				.percentage = {
+					.min = 0,
+					.max = 63,
+				},
+			},
+			.hbm = {
+				.nits = {
+					.min = 1000,
+					.max = 1600,
+				},
+				.level = {
+					.min = 2989,
+					.max = 3701,
+				},
+				.percentage = {
+					.min = 63,
+					.max = 100,
+				},
+			},
+		},
+	},
+	{
+		.panel_rev = PANEL_REV_PROTO1 | PANEL_REV_PROTO1_1 | PANEL_REV_PROTO1_2 | PANEL_REV_EVT1,
+		.dft_brightness = 1353,    /* 140 nits brightness */
+		.brt_capability = {
+			.normal = {
+				.nits = {
+					.min = 2,
+					.max = 1000,
+				},
+				.level = {
+					.min = 174,
+					.max = 3307,
+				},
+				.percentage = {
+					.min = 0,
+					.max = 63,
+				},
+			},
+			.hbm = {
+				.nits = {
+					.min = 1000,
+					.max = 1600,
+				},
+				.level = {
+					.min = 3308,
+					.max = 4095,
+				},
+				.percentage = {
+					.min = 63,
+					.max = 100,
+				},
+			},
+		},
+	},
+};
+
+static int ct3a_panel_config(struct exynos_panel *ctx);
+
 static const struct exynos_panel_funcs ct3a_exynos_funcs = {
 	.set_brightness = ct3a_set_brightness,
 	.set_lp_mode = ct3a_set_lp_mode,
@@ -1453,14 +1527,11 @@ static const struct exynos_panel_funcs ct3a_exynos_funcs = {
 	.get_panel_rev = ct3a_get_panel_rev,
 	.read_id = exynos_panel_read_ddic_id,
 	.panel_init = ct3a_panel_init,
+	.panel_config = ct3a_panel_config,
 };
 
-const struct exynos_panel_desc google_ct3a = {
+struct exynos_panel_desc google_ct3a = {
 	.data_lane_cnt = 4,
-	.max_brightness = 4095,
-	.min_brightness = 174,
-	.dft_brightness = 1023,    /* TODO: b/277158093, use 140 nits brightness */
-	.brt_capability = &ct3a_brightness_capability,
 	/* supported HDR format bitmask : 1(DOLBY_VISION), 2(HDR10), 3(HLG) */
 	.hdr_formats = BIT(2) | BIT(3),
 	.max_luminance = 10000000,
@@ -1489,6 +1560,19 @@ const struct exynos_panel_desc google_ct3a = {
 		{PANEL_REG_ID_VCI, 15},
 	},
 };
+
+static int ct3a_panel_config(struct exynos_panel *ctx)
+{
+	int ret;
+	/* exynos_panel_model_init(ctx, PROJECT, 0); */
+
+	ret = exynos_panel_init_brightness(&google_ct3a,
+						ct3a_btr_configs,
+						ARRAY_SIZE(ct3a_btr_configs),
+						ctx->panel_rev);
+
+	return ret;
+}
 
 static const struct of_device_id exynos_panel_of_match[] = {
 	{ .compatible = "google,ct3a", .data = &google_ct3a },

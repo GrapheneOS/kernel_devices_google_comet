@@ -738,7 +738,7 @@ static const struct exynos_panel_funcs ct3b_exynos_funcs = {
 static const struct exynos_brightness_configuration ct3b_btr_configs[] = {
 	{
 		.panel_rev = PANEL_REV_LATEST,
-		.dft_brightness = 2052,
+		.dft_brightness = 2084,
 		.brt_capability = {
 			.normal = {
 				.nits = {
