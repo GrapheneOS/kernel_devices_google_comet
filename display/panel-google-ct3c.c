@@ -96,6 +96,8 @@ static const struct exynos_dsi_cmd ct3c_off_cmds[] = {
 static DEFINE_EXYNOS_CMD_SET(ct3c_off);
 
 static const struct exynos_dsi_cmd ct3c_lp_cmds[] = {
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1_1),
+		MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24),
 };
 static DEFINE_EXYNOS_CMD_SET(ct3c_lp);
 
@@ -106,10 +108,13 @@ static const struct exynos_dsi_cmd ct3c_lp_low_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x25), /* AOD 10 nit */
 	EXYNOS_DSI_CMD0_REV(test_key_disable, PANEL_REV_PROTO1),
 
-	/* Proto 1.1 and later */
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_PROTO1_1),
+	/* Proto 1.1, EVT 1.0 */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1_1 | PANEL_REV_EVT1,
 		MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x25), /* AOD 10 nit */
 
+	/* EVT 1.1 and later */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1_1),
+		MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x01, 0x7E),
 };
 
 static const struct exynos_dsi_cmd ct3c_lp_high_cmds[] = {
@@ -119,9 +124,13 @@ static const struct exynos_dsi_cmd ct3c_lp_high_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24), /* AOD 50 nit */
 	EXYNOS_DSI_CMD0_REV(test_key_disable, PANEL_REV_PROTO1),
 
-	/* Proto 1.1 and later */
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_PROTO1_1),
+	/* Proto 1.1, EVT 1.0 */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1_1 | PANEL_REV_EVT1,
 		MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24), /* AOD 50 nit */
+
+	/* EVT 1.1 and later */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1_1),
+		MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x03, 0x1A),
 };
 
 static const struct exynos_binned_lp ct3c_binned_lp[] = {
@@ -137,28 +146,25 @@ static const struct exynos_dsi_cmd ct3c_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_TEAR_ON),
 
 	EXYNOS_DSI_CMD0(test_key_enable),
+	/* TE Width Settings */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1_1), 0xB9, 0x01),
 	/* FREQ CON Set */
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x27, 0xF2),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x27, 0xF2),
 	EXYNOS_DSI_CMD_SEQ(0xF2, 0x02),
 	/* TE2 setting */
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x69, 0xCB),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x69, 0xCB),
 	EXYNOS_DSI_CMD_SEQ(0xCB, 0x10, 0x00, 0x30), /* 60HS TE2 ON */
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0xE9, 0xCB),
-	EXYNOS_DSI_CMD_SEQ(0xCB, 0x10, 0x00, 0x30), /* 120HS & 90HS TE2 ON */
-	/* TODO: Only for EVT and later? */
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x28, 0xF2),
-	EXYNOS_DSI_CMD_SEQ(0xF2, 0xCC), /* 10 bit change */
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0xE9, 0xCB),
+	EXYNOS_DSI_CMD_SEQ(0xCB, 0x10, 0x00, 0x30), /* 120HS TE2 ON */
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x01, 0x69, 0xCB),
 	EXYNOS_DSI_CMD_SEQ(0xCB, 0x10, 0x00, 0x2D), /* AOD TE2 ON */
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x28, 0xF2),
-	EXYNOS_DSI_CMD_SEQ(0xF2, 0xC4), /* 8 bit change */
 
 	/* TSP Sync set (only for P1.0, P1.1) */
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1), 0xB0, 0x0D, 0xB9),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1), 0xB0, 0x00, 0x0D, 0xB9),
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1), 0xB9, 0xB1, 0xA1),
 	EXYNOS_DSI_CMD0(ltps_update),
 	/* ELVSS Caloffset Set (only for P1.1) */
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1_1, 0xB0, 0x02, 0x63),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1_1, 0xB0, 0x00, 0x02, 0x63),
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1_1, 0x63, 0x15, 0x0A, 0x15, 0x0A, 0x15, 0x0A),
 	EXYNOS_DSI_CMD0(test_key_disable),
 
@@ -171,9 +177,9 @@ static const struct exynos_dsi_cmd ct3c_init_cmds[] = {
 	/* FFC 865Mbps @ fosc 180Mhz */
 	EXYNOS_DSI_CMD0(test_key_enable),
 	EXYNOS_DSI_CMD_SEQ(0xFC, 0x5A, 0x5A),
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x2A, 0xC5),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x2A, 0xC5),
 	EXYNOS_DSI_CMD_SEQ(0xC5, 0x0D, 0x10, 0x80, 0x05),
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x2E, 0xC5),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x2E, 0xC5),
 	EXYNOS_DSI_CMD_SEQ(0xC5, 0x6A, 0x8B), /* 865Mbps FFC Setting */
 	EXYNOS_DSI_CMD_SEQ(0xFC, 0xA5, 0xA5),
 	EXYNOS_DSI_CMD0(test_key_disable),
@@ -212,18 +218,15 @@ static void ct3c_proto_change_frequency(struct exynos_panel *ctx,
 	}
 
 	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x27, 0xF2);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x27, 0xF2);
 
 	if (ctx->op_hz == 60) {
 		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x82);
 		EXYNOS_DCS_BUF_ADD(ctx, 0x60, 0x00);
-		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x0E, 0xF2);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x0E, 0xF2);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x00, 0x0C);
-		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x4C, 0xF6);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x4C, 0xF6);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xF6, 0x21, 0x0E);
-		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x28, 0xF2);
-		EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xCC); /* 10 bit control */
-
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x88, 0xCB);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x14, 0x13);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x8E, 0xCB);
@@ -237,18 +240,14 @@ static void ct3c_proto_change_frequency(struct exynos_panel *ctx,
 	} else {
 		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x02);
 		EXYNOS_DCS_BUF_ADD(ctx, 0x60, (vrefresh == 120) ? 0x00 : 0x08);
-		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x07, 0xF2);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x07, 0xF2);
 		if (vrefresh == 120) {
 			EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x00, 0x0C);
 		} else {
 			EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x09, 0x9C);
 		}
-		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x4C, 0xF6);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x4C, 0xF6);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xF6, 0x43, 0x1C);
-		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x28, 0xF2);
-		/* TODO b/296203152 : batching here makes green screen. */
-		EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xCC); /* 10 bit control */
-
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x88, 0xCB);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x27, 0x26);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x8E, 0xCB);
@@ -261,8 +260,6 @@ static void ct3c_proto_change_frequency(struct exynos_panel *ctx,
 		EXYNOS_DCS_BUF_ADD(ctx, 0xCB, 0x36, 0x36);
 	}
 
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x28, 0xF2);
-	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xC4); /* 8 bit control */
 	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
 
@@ -337,21 +334,7 @@ static void ct3c_evt_change_frequency(struct exynos_panel *ctx,
 	if (!ctx || ((vrefresh != 60) && (vrefresh != 90) && (vrefresh != 120)))
 		return;
 
-	/* Global para 10bit set */
-	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x28, 0xF2);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0xCC);
-	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
-
 	ct3c_freq_change_command(ctx, vrefresh);
-
-	/* Global para 8bit set */
-	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x28, 0xF2);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0xC4);
-	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
-	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
-
 	ct3c_te_change_command(ctx, vrefresh);
 
 	dev_info(ctx->dev, "%s: change to %uHz\n", __func__, vrefresh);
@@ -365,7 +348,9 @@ static void ct3c_change_frequency(struct exynos_panel *ctx,
 
 	if (ctx->panel_rev == PANEL_REV_PROTO1) {
 		ct3c_proto_change_frequency(ctx, pmode);
-	} else if (ctx->panel_rev == PANEL_REV_PROTO1_1) {
+	} else if (ctx->panel_rev == PANEL_REV_EVT1) {
+		ct3c_evt_change_frequency(ctx, pmode);
+	} else {
 		if (!ctx || ((vrefresh != 60) && (vrefresh != 120)))
 			return;
 
@@ -376,8 +361,6 @@ static void ct3c_change_frequency(struct exynos_panel *ctx,
 
 		dev_info(ctx->dev, "%s: change to %uHz\n", __func__, vrefresh);
 		return;
-	} else {
-		ct3c_evt_change_frequency(ctx, pmode);
 	}
 }
 
@@ -477,8 +460,6 @@ static void ct3c_set_hbm_mode(struct exynos_panel *ctx,
 	ctx->hbm_mode = mode;
 
 	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x28, 0xF2);
-	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xCC); /* 10 bit Change */
 
 	if (ctx->panel_rev == PANEL_REV_PROTO1) {
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0x18, 0x68);
@@ -491,16 +472,17 @@ static void ct3c_set_hbm_mode(struct exynos_panel *ctx,
 	} else {
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0x22, 0x68);
 		if (IS_HBM_ON_IRC_OFF(ctx->hbm_mode)) {
-			if (ctx->panel_rev == PANEL_REV_PROTO1_1)
+			if (ctx->panel_rev == PANEL_REV_PROTO1_1) {
 				EXYNOS_DCS_BUF_ADD(ctx, 0x68, 0x2D, 0xF1, 0xFF, 0x94); /* FGZ Mode ON */
-			else
+			} else if (ctx->panel_rev == PANEL_REV_EVT1) {
 				EXYNOS_DCS_BUF_ADD(ctx, 0x68, 0x40, 0x00, 0xFF, 0x9C); /* FGZ Mode ON */;
+			} else {
+				EXYNOS_DCS_BUF_ADD(ctx, 0x68, 0x28, 0xED, 0xFF, 0x94); /* FGZ Mode ON */
+			}
 		} else
 			EXYNOS_DCS_BUF_ADD(ctx, 0x68, 0x00, 0x00, 0xFF, 0x90); /* FGZ Mode OFF */
 	}
 
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00,0x28,0xF2);
-	EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xF2, 0xC4); /* 8 bit Change */
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
 
 	dev_info(ctx->dev, "hbm_on=%d hbm_ircoff=%d.\n", IS_HBM_ON(ctx->hbm_mode),
@@ -575,21 +557,6 @@ static void ct3c_get_panel_rev(struct exynos_panel *ctx, u32 id)
 	exynos_panel_get_panel_rev(ctx, rev);
 }
 
-static void ct3c_panel_reset(struct exynos_panel *ctx)
-{
-    dev_dbg(ctx->dev, "%s +\n", __func__);
-
-    gpiod_set_value(ctx->reset_gpio, 0);
-    usleep_range(1000, 1010);
-
-    gpiod_set_value(ctx->reset_gpio, 1);
-    usleep_range(5100, 5110);
-
-    dev_dbg(ctx->dev, "%s -\n", __func__);
-
-    exynos_panel_init(ctx);
-}
-
 static void ct3c_set_lp_mode(struct exynos_panel *ctx,
 					const struct exynos_panel_mode *pmode)
 {
@@ -632,6 +599,14 @@ static void ct3c_set_nolp_mode(struct exynos_panel *ctx,
 	dev_info(ctx->dev, "exit LP mode\n");
 }
 
+static void ct3c_10bit_set(struct exynos_panel *ctx)
+{
+	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x28, 0xF2);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0xCC);  /* 10bit */
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
+}
+
 static int ct3c_enable(struct drm_panel *panel)
 {
 	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
@@ -645,10 +620,12 @@ static int ct3c_enable(struct drm_panel *panel)
 
 	dev_info(ctx->dev, "%s\n", __func__);
 
-	ct3c_panel_reset(ctx);
+	exynos_panel_reset(ctx);
 
 	/* sleep out */
 	EXYNOS_DCS_WRITE_SEQ_DELAY(ctx, 120, MIPI_DCS_EXIT_SLEEP_MODE);
+
+	ct3c_10bit_set(ctx);
 
 	/* initial command */
 	exynos_panel_send_cmd_set(ctx, &ct3c_init_cmd_set);
@@ -892,13 +869,18 @@ const struct exynos_panel_desc google_ct3c = {
 	.num_binned_lp = ARRAY_SIZE(ct3c_binned_lp),
 	.panel_func = &ct3c_drm_funcs,
 	.exynos_panel_func = &ct3c_exynos_funcs,
+	.reset_timing_ms = {1, 1, 1},
 	.reg_ctrl_enable = {
 		{PANEL_REG_ID_VDDI, 0},
-		{PANEL_REG_ID_VCI, 0},
-		{PANEL_REG_ID_VDDD, 10},
+		{PANEL_REG_ID_VCI, 10},
+	},
+	.reg_ctrl_post_enable = {
+		{PANEL_REG_ID_VDDD, 5},
+	},
+	.reg_ctrl_pre_disable = {
+		{PANEL_REG_ID_VDDD, 0},
 	},
 	.reg_ctrl_disable = {
-		{PANEL_REG_ID_VDDD, 0},
 		{PANEL_REG_ID_VCI, 0},
 		{PANEL_REG_ID_VDDI, 0},
 	},
