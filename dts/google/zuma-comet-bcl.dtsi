@@ -20,6 +20,7 @@
 };
 
 &google_mitigation {
+	google,ifpmic = <M77779>;
 	google,charger = <&max77779_chg>;
 	google,pmic = <&max77779_pmic>;
 	google,power-supply = <&max77779_fg>;
