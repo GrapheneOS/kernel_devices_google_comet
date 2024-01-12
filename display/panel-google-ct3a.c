@@ -38,6 +38,14 @@ enum ct3a_panel_feature {
 	FEAT_MAX,
 };
 
+#define VLIN_CMD_SIZE 3
+
+static const u8 vlin_7v7[] = { 0x46, 0x23, 0x06 };
+static const u8 vlin_7v9[] = { 0x46, 0x23, 0x02 };
+static const u8 vgh_7v1[]  = { 0xF4, 0x15, 0x15, 0x15, 0x15 };
+static const u8 vgh_7v4[]  = { 0xF4, 0x18, 0x18, 0x18, 0x18 };
+static const u8 vreg_6v9[] = { 0xF4, 0x18 };
+
 /**
  * struct ct3a_effective_hw_config - panel effective hardware configurations
  *
@@ -90,6 +98,10 @@ struct ct3a_panel {
 	bool force_fi;
 	/** @tzd: thermal zone struct */
 	struct thermal_zone_device *tzd;
+	/** @panel_voltage: panel default voltage  */
+	struct panel_voltage {
+		u8 vlin_default[VLIN_CMD_SIZE];
+	} panel_voltage;
 	struct ct3a_effective_hw_config hw;
 };
 
@@ -975,6 +987,51 @@ static int ct3a_set_brightness(struct exynos_panel *ctx, u16 br)
 	return exynos_dcs_set_brightness(ctx, brightness);
 }
 
+static void ct3a_set_default_voltage(struct exynos_panel *ctx, bool enable)
+{
+	struct ct3a_panel *spanel = to_spanel(ctx);
+	const u8 *vlin_default = spanel->panel_voltage.vlin_default;
+
+	if(ctx->panel_rev < PANEL_REV_EVT1)
+		return;
+	dev_dbg(ctx->dev, "%s enable = %d\n", __func__, enable);
+
+	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
+
+	if (enable) {
+		/* 3.4 VLIN / VGH / VREG Return Setting */
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x03, 0x48);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x48, 0x08);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x48, 0xF1);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x01, 0x46);
+		if(ctx->panel_rev < PANEL_REV_EVT1_1)
+			EXYNOS_DCS_BUF_ADD_SET(ctx, vlin_7v7);
+		else
+			EXYNOS_DCS_BUF_ADD(ctx, 0x46, 0x23, vlin_default[2]);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x46, 0x00);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x0F, 0xF4);
+		EXYNOS_DCS_BUF_ADD_SET(ctx, vgh_7v1);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x48, 0x80);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x32, 0xF4);
+		EXYNOS_DCS_BUF_ADD_SET(ctx, vreg_6v9);
+	} else {
+		/* 3.3 VGH / VLIN / VREG Setting */
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x03, 0x48);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x48, 0x08);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x48, 0xF1);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x01, 0x46);
+		EXYNOS_DCS_BUF_ADD_SET(ctx, vlin_7v9);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x46, 0x00);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x0F, 0xF4);
+		EXYNOS_DCS_BUF_ADD_SET(ctx, vgh_7v4);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x48, 0x80);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x32, 0xF4);
+		EXYNOS_DCS_BUF_ADD_SET(ctx, vreg_6v9);
+	}
+
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
+}
+
 static int ct3a_disable(struct drm_panel *panel)
 {
 	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
@@ -989,6 +1046,7 @@ static int ct3a_disable(struct drm_panel *panel)
 		return 0;
 	}
 
+	ct3a_set_default_voltage(ctx, false);
 	ret = exynos_panel_disable(panel);
 	if (ret)
 		return ret;
@@ -1197,6 +1255,43 @@ static void ct3a_panel_reset(struct exynos_panel *ctx)
 	exynos_panel_init(ctx);
 }
 
+static int ct3a_read_default_voltage(struct exynos_panel *ctx)
+{
+	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
+	struct ct3a_panel *spanel = to_spanel(ctx);
+	u8 *vlin = spanel->panel_voltage.vlin_default;
+	int ret;
+
+	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x46, 0x48);
+	vlin[0] = 0x46;
+	vlin[1] = 0x23;
+	ret = mipi_dsi_dcs_read(dsi, 0x48, vlin + 2, VLIN_CMD_SIZE - 2);
+	if (ret == (VLIN_CMD_SIZE-2)) {
+		dev_info(ctx->dev, "%s: vlin: 0x%x\n", __func__, vlin[2]);
+	} else {
+		vlin[2] = 0x06; /* use vlin 7.7v as default */
+		dev_err(ctx->dev, "unable to read vlin\n");
+	}
+	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, lock_cmd_f0);
+
+	return 0;
+}
+
+static int ct3a_read_id(struct exynos_panel *ctx)
+{
+	int ret = exynos_panel_read_ddic_id(ctx);
+	if(ret)
+		return ret;
+
+	dev_info(ctx->dev, "%s: 0x%x\n", __func__, ctx->panel_rev);
+	if(ctx->panel_rev < PANEL_REV_EVT1_1)
+		return 0;
+
+	ct3a_read_default_voltage(ctx);
+	return 0;
+}
+
 static int ct3a_enable(struct drm_panel *panel)
 {
 	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
@@ -1220,7 +1315,15 @@ static int ct3a_enable(struct drm_panel *panel)
 	EXYNOS_PPS_WRITE_BUF(ctx, &pps_payload);
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0x9D, 0x01); /* DSC Enable */
 
-	EXYNOS_DCS_WRITE_SEQ_DELAY(ctx, 120, MIPI_DCS_EXIT_SLEEP_MODE);
+	if(ctx->panel_rev < PANEL_REV_EVT1) {
+		EXYNOS_DCS_WRITE_SEQ_DELAY(ctx, 120, MIPI_DCS_EXIT_SLEEP_MODE);
+	}
+	else {
+		EXYNOS_DCS_WRITE_SEQ_DELAY(ctx,  10, MIPI_DCS_EXIT_SLEEP_MODE);
+		ct3a_set_default_voltage(ctx, false);
+		usleep_range(110000, 110010);
+	}
+
 	exynos_panel_send_cmd_set(ctx, &ct3a_init_cmd_set);
 
 	ct3a_update_panel_feat(ctx, true);
@@ -1236,6 +1339,7 @@ static int ct3a_enable(struct drm_panel *panel)
 
 	EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
 
+	ct3a_set_default_voltage(ctx, true);
 	dev_info(ctx->dev, "%s -\n", __func__);
 
 	DPU_ATRACE_END(__func__);
@@ -1632,7 +1736,7 @@ static const struct exynos_panel_funcs ct3a_exynos_funcs = {
 	.is_mode_seamless = ct3a_is_mode_seamless,
 	.mode_set = ct3a_mode_set,
 	.get_panel_rev = ct3a_get_panel_rev,
-	.read_id = exynos_panel_read_ddic_id,
+	.read_id = ct3a_read_id,
 	.panel_init = ct3a_panel_init,
 	.panel_config = ct3a_panel_config,
 };
