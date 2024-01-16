@@ -7,8 +7,9 @@ kernel_module(
     srcs = glob([
         "**/*.c",
         "**/*.h",
-        "Kbuild",
     ]) + [
+        "Kbuild",
+    ] + [
         "//private/google-modules/display/common:headers",
         "//private/google-modules/display/samsung:headers",
         "//private/google-modules/display/samsung/include:headers",
@@ -20,6 +21,7 @@ kernel_module(
         "panel-google-ct3b.ko",
         "panel-google-ct3c.ko",
         "panel-google-ct3d.ko",
+        "panel-google-ct3e.ko",
     ],
     kernel_build = "//private/google-modules/soc/gs:gs_kernel_build",
     visibility = [

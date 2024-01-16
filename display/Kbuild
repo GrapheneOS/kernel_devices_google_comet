@@ -4,3 +4,4 @@ obj-$(CONFIG_DRM_PANEL_GOOGLE_CT3A)		+= panel-google-ct3a.o
 obj-$(CONFIG_DRM_PANEL_GOOGLE_CT3B)		+= panel-google-ct3b.o
 obj-$(CONFIG_DRM_PANEL_GOOGLE_CT3C)		+= panel-google-ct3c.o
 obj-$(CONFIG_DRM_PANEL_GOOGLE_CT3D)		+= panel-google-ct3d.o
+obj-$(CONFIG_DRM_PANEL_GOOGLE_CT3E)		+= panel-google-ct3e.o
