@@ -6,60 +6,6 @@
  *
  */
 
-/* Display: inner display vddi-supply voltage */
-&m_ldo24_reg {
-	regulator-boot-on;
-	regulator-min-microvolt = <1850000>;
-	regulator-max-microvolt = <1850000>;
-	schematic-name = "L24M_INNER_DISP_VDDI";
-	subsys-name = "Display";
-};
-
-/* Display: inner display vci-supply voltage */
-&m_ldo14_reg {
-	regulator-boot-on;
-	/delete-property/ regulator-always-on;
-	regulator-min-microvolt = <3000000>;
-	regulator-max-microvolt = <3000000>;
-	schematic-name = "L14M_INNER_DISP_VCI";
-	subsys-name = "Display";
-};
-
-/* Display: inner display vddr-supply voltage */
-&disp_vddr_0 {
-	status = "okay";
-	gpio = <&gpp21 4 GPIO_ACTIVE_HIGH>;
-	schematic-name = "INNER_DISP_VDDR";
-	subsys-name = "Display";
-};
-
-/* Display: outer display vddi-supply voltage */
-&s_ldo29_reg {
-	regulator-boot-on;
-	regulator-min-microvolt = <1800000>;
-	regulator-max-microvolt = <1800000>;
-	schematic-name = "L29S_OUTER_DISP_VDDI";
-	subsys-name = "Display";
-};
-
-/* Display: outer display vci-supply voltage */
-&s_ldo8_reg {
-	regulator-boot-on;
-	/delete-property/ regulator-always-on;
-	regulator-min-microvolt = <3000000>;
-	regulator-max-microvolt = <3000000>;
-	schematic-name = "L8S_OUTER_DISP_VCI";
-	subsys-name = "Display";
-};
-
-/* Display: outer display vddd-supply voltage */
-&disp_vddd {
-	status = "okay";
-	gpio = <&s2mpg14_gpio 3 GPIO_ACTIVE_HIGH>;
-	schematic-name = "OUTER_DISP_VDDD";
-	subsys-name = "Display";
-};
-
 &m_ldo4_reg {
 	schematic-name = "L4M_INNER_TS_AVDD";
 	subsys-name = "TS";
