@@ -431,6 +431,14 @@ static const struct exynos_display_underrun_param underrun_param = {
 	.te_var = 1,
 };
 
+static const int ct3b_vrefresh_range[] = {
+	1, 10, 30, 60, 120
+};
+
+static const int ct3b_lp_vrefresh_range[] = {
+	1, 30
+};
+
 /* Truncate 8-bit signed value to 6-bit signed value */
 #define TO_6BIT_SIGNED(v) ((v) & 0x3F)
 
@@ -781,8 +789,12 @@ struct exynos_panel_desc google_ct3b = {
 	.min_luminance = 5,
 	.modes = ct3b_modes,
 	.num_modes = ARRAY_SIZE(ct3b_modes),
+	.vrefresh_range = ct3b_vrefresh_range,
+	.vrefresh_range_count = ARRAY_SIZE(ct3b_vrefresh_range),
 	.off_cmd_set = &ct3b_off_cmd_set,
 	.lp_mode = &ct3b_lp_mode,
+	.lp_vrefresh_range = ct3b_lp_vrefresh_range,
+	.lp_vrefresh_range_count = ARRAY_SIZE(ct3b_lp_vrefresh_range),
 	.lp_cmd_set = &ct3b_lp_cmd_set,
 	.binned_lp = ct3b_binned_lp,
 	.num_binned_lp = ARRAY_SIZE(ct3b_binned_lp),

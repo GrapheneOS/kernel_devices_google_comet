@@ -530,7 +530,7 @@ static void ct3a_update_refresh_mode(struct exynos_panel *ctx,
 	 */
 	ctx->panel_idle_vrefresh = idle_vrefresh;
 	ct3a_set_panel_feat(ctx, vrefresh, idle_vrefresh, false);
-	schedule_work(&ctx->state_notify);
+	notify_panel_mode_changed(ctx);
 
 	dev_dbg(ctx->dev, "%s: display state is notified\n", __func__);
 }
@@ -612,7 +612,7 @@ static bool ct3a_set_self_refresh(struct exynos_panel *ctx, bool enable)
 	if (pmode->exynos_mode.is_lp_mode) {
 		/* set 1Hz while self refresh is active, otherwise clear it */
 		ctx->panel_idle_vrefresh = enable ? 1 : 0;
-		schedule_work(&ctx->state_notify);
+		notify_panel_mode_changed(ctx);
 		return false;
 	}
 
@@ -1226,6 +1226,14 @@ static const u32 ct3a_bl_range[] = {
 	94, 180, 270, 360, 3307
 };
 
+static const int ct3a_vrefresh_range[] = {
+	1, 10, 30, 60, 120
+};
+
+static const int ct3a_lp_vrefresh_range[] = {
+	1, 30
+};
+
 static const u16 WIDTH_MM = 147, HEIGHT_MM = 141;
 static const u16 HDISPLAY = 2152, VDISPLAY = 2076;
 static const u16 HFP = 80, HSA = 30, HBP = 38;
@@ -1540,7 +1548,11 @@ struct exynos_panel_desc google_ct3a = {
 	.bl_range = ct3a_bl_range,
 	.modes = ct3a_modes,
 	.num_modes = ARRAY_SIZE(ct3a_modes),
+	.vrefresh_range = ct3a_vrefresh_range,
+	.vrefresh_range_count = ARRAY_SIZE(ct3a_vrefresh_range),
 	.lp_mode = &ct3a_lp_mode,
+	.lp_vrefresh_range = ct3a_lp_vrefresh_range,
+	.lp_vrefresh_range_count = ARRAY_SIZE(ct3a_lp_vrefresh_range),
 	.binned_lp = ct3a_binned_lp,
 	.num_binned_lp = ARRAY_SIZE(ct3a_binned_lp),
 	.is_panel_idle_supported = true,
