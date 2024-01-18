@@ -530,7 +530,7 @@ static void ct3a_update_refresh_mode(struct exynos_panel *ctx,
 	 */
 	ctx->panel_idle_vrefresh = idle_vrefresh;
 	ct3a_set_panel_feat(ctx, vrefresh, idle_vrefresh, false);
-	notify_panel_mode_changed(ctx);
+	notify_panel_mode_changed(ctx, false);
 
 	dev_dbg(ctx->dev, "%s: display state is notified\n", __func__);
 }
@@ -612,7 +612,7 @@ static bool ct3a_set_self_refresh(struct exynos_panel *ctx, bool enable)
 	if (pmode->exynos_mode.is_lp_mode) {
 		/* set 1Hz while self refresh is active, otherwise clear it */
 		ctx->panel_idle_vrefresh = enable ? 1 : 0;
-		notify_panel_mode_changed(ctx);
+		notify_panel_mode_changed(ctx, true);
 		return false;
 	}
 
