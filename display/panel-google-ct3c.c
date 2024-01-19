@@ -317,6 +317,7 @@ static void ct3c_freq_change_command(struct exynos_panel *ctx, const u32 vrefres
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x07, 0xF2);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x00, 0xAE);
 	}
+	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
 }
 
