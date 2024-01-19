@@ -719,6 +719,26 @@ static bool ct3a_set_self_refresh(struct exynos_panel *ctx, bool enable)
 	return true;
 }
 
+static void ct3a_refresh_ctrl(struct exynos_panel *ctx, u32 ctrl)
+{
+	const struct exynos_panel_mode *pmode = ctx->current_mode;
+
+	DPU_ATRACE_BEGIN(__func__);
+
+	if (!is_vrr_mode(pmode)) {
+		dev_warn(ctx->dev, "%s: refresh control should be called for vrr mode only\n",
+				__func__);
+		return;
+	}
+
+	if (ctrl & PANEL_REFRESH_CTRL_FI) {
+		dev_dbg(ctx->dev, "%s: performing a frame insertion\n", __func__);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x2C, 0x00);
+	}
+
+	DPU_ATRACE_END(__func__);
+}
+
 static int ct3a_atomic_check(struct exynos_panel *ctx, struct drm_atomic_state *state)
 {
 	struct drm_connector *conn = &ctx->exynos_connector.base;
@@ -1568,6 +1588,7 @@ static const struct exynos_panel_funcs ct3a_exynos_funcs = {
 	.commit_done = ct3a_commit_done,
 	.atomic_check = ct3a_atomic_check,
 	.set_self_refresh = ct3a_set_self_refresh,
+	.refresh_ctrl = ct3a_refresh_ctrl,
 	.set_op_hz = ct3a_set_op_hz,
 	.is_mode_seamless = ct3a_is_mode_seamless,
 	.mode_set = ct3a_mode_set,
