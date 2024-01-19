@@ -157,6 +157,8 @@ static const struct drm_dsc_config pps_config = {
 #define CT3A_WRCTRLD_BCTRL_BIT      0x20
 
 #define CT3A_TE_USEC_120HZ_HS 320
+#define CT3A_TE_USEC_VRR_HS 320
+#define CT3A_TE_USEC_VRR_NS 640
 
 static const u8 unlock_cmd_f0[] = { 0xF0, 0x5A, 0x5A };
 static const u8 lock_cmd_f0[] = { 0xF0, 0xA5, 0xA5 };
@@ -319,7 +321,7 @@ static void ct3a_set_panel_feat(struct exynos_panel *ctx,
 		idle_vrefresh = 0;
 		set_bit(FEAT_EARLY_EXIT, feat);
 		clear_bit(FEAT_FRAME_AUTO, feat);
-		if (pmode->mode.type & DRM_MODE_FLAG_NS)
+		if (pmode->mode.flags & DRM_MODE_FLAG_NS)
 			set_bit(FEAT_OP_NS, feat);
 		else
 			clear_bit(FEAT_OP_NS, feat);
@@ -355,7 +357,12 @@ static void ct3a_set_panel_feat(struct exynos_panel *ctx,
 			if (is_vrr && te_freq == 240) {
 				/* 240Hz multi TE */
 				EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x08, 0xB9);
-				EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x08, 0x1C, 0x00, 0x00, 0x03, 0xE0, 0x00, 0x01);
+				if (test_bit(FEAT_OP_NS, feat))
+					EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x08, 0x1C, 0x00, 0x00, 0x01,
+							0xC6, 0x00, 0x01);
+				else
+					EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x08, 0x1C, 0x00, 0x00, 0x03,
+							0xE0, 0x00, 0x01);
 				EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x61);
 			} else {
 				/* 120Hz Fixed TE */
@@ -484,8 +491,19 @@ static void ct3a_set_panel_feat(struct exynos_panel *ctx,
 			EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0xE1);
 		}
 		if (test_bit(FEAT_OP_NS, feat)) {
+			if(is_vrr) {
+				EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x83, 0xBD);
+				EXYNOS_DCS_BUF_ADD(ctx, 0xBD, 0x00);
+				EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x61);
+			}
+
+			EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x01);
+
 			if (vrefresh == 1) {
-				val = 0x1D;
+				if (ctx->panel_rev >= PANEL_REV_PROTO1_2)
+					val = 0x1E;
+				else
+					val = 0x1D;
 			} else if (vrefresh == 10) {
 				val = 0x1C;
 			} else if (vrefresh == 30) {
@@ -499,6 +517,8 @@ static void ct3a_set_panel_feat(struct exynos_panel *ctx,
 				val = 0x18;
 			}
 		} else {
+			EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x01);
+
 			if (vrefresh == 1) {
 				val = 0x06;
 			} else if (vrefresh == 10) {
@@ -1437,7 +1457,45 @@ static const struct exynos_panel_mode ct3a_modes[] = {
 		.exynos_mode = {
 			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
 			.vblank_usec = 120,
-			.te_usec = CT3A_TE_USEC_120HZ_HS,
+			.te_usec = CT3A_TE_USEC_VRR_HS,
+			.bpc = 8,
+			.dsc = CT3A_DSC,
+			.underrun_param = &underrun_param,
+		},
+		.idle_mode = IDLE_MODE_UNSUPPORTED,
+	},
+	{
+		.mode = {
+			.name = "2152x2076@120:120",
+			DRM_MODE_TIMING(120, 2152, 80, 30, 38, 2076, 6, 4, 14),
+			.flags = DRM_MODE_FLAG_TE_FREQ_X1,
+			.type = DRM_MODE_TYPE_VRR,
+			.width_mm = WIDTH_MM,
+			.height_mm = HEIGHT_MM,
+		},
+		.exynos_mode = {
+			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
+			.vblank_usec = 120,
+			.te_usec = CT3A_TE_USEC_VRR_HS,
+			.bpc = 8,
+			.dsc = CT3A_DSC,
+			.underrun_param = &underrun_param,
+		},
+		.idle_mode = IDLE_MODE_UNSUPPORTED,
+	},
+	{
+		.mode = {
+			.name = "2152x2076@60:240",
+			DRM_MODE_TIMING(60, 2152, 80, 30, 38, 2076, 6, 4, 14),
+			.flags = DRM_MODE_FLAG_TE_FREQ_X4 | DRM_MODE_FLAG_NS,
+			.type = DRM_MODE_TYPE_VRR,
+			.width_mm = WIDTH_MM,
+			.height_mm = HEIGHT_MM,
+		},
+		.exynos_mode = {
+			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
+			.vblank_usec = 120,
+			.te_usec = CT3A_TE_USEC_VRR_NS,
 			.bpc = 8,
 			.dsc = CT3A_DSC,
 			.underrun_param = &underrun_param,
