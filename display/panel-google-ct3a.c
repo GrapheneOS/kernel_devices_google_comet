@@ -39,7 +39,10 @@ enum ct3a_panel_feature {
 };
 
 /**
- * The panel effective hardware configurations.
+ * struct ct3a_effective_hw_config - panel effective hardware configurations
+ *
+ * This struct maintains c3a panel configurations that have been committed to
+ * hardware and are currently active.
  */
 struct ct3a_effective_hw_config {
 	/** @feat: correlated feature effective in panel */
@@ -83,6 +86,8 @@ struct ct3a_panel {
 	 *		  panel can recover to normal mode after entering pixel-off state.
 	 */
 	bool is_pixel_off;
+	/** @force_fi: force to keep frame insertion enabled */
+	bool force_fi;
 	/** @tzd: thermal zone struct */
 	struct thermal_zone_device *tzd;
 	struct ct3a_effective_hw_config hw;
@@ -316,16 +321,21 @@ static void ct3a_set_panel_feat(struct exynos_panel *ctx,
 	u8 val;
 	DECLARE_BITMAP(changed_feat, FEAT_MAX);
 
-	if (is_vrr) {
-		vrefresh = 1;
-		idle_vrefresh = 0;
-		set_bit(FEAT_EARLY_EXIT, feat);
+#ifndef PANEL_FACTORY_BUILD
+	vrefresh = 1;
+	idle_vrefresh = 0;
+	set_bit(FEAT_EARLY_EXIT, feat);
+	if (spanel->force_fi)
+		set_bit(FEAT_FRAME_AUTO, feat);
+	else
 		clear_bit(FEAT_FRAME_AUTO, feat);
+	if (is_vrr) {
 		if (pmode->mode.flags & DRM_MODE_FLAG_NS)
 			set_bit(FEAT_OP_NS, feat);
 		else
 			clear_bit(FEAT_OP_NS, feat);
 	}
+#endif
 
 	if (enforce) {
 		bitmap_fill(changed_feat, FEAT_MAX);
@@ -351,8 +361,7 @@ static void ct3a_set_panel_feat(struct exynos_panel *ctx,
 	EXYNOS_DCS_BUF_ADD_SET(ctx, unlock_cmd_f0);
 	/* TE setting */
 	if (test_bit(FEAT_EARLY_EXIT, changed_feat) ||
-		test_bit(FEAT_OP_NS, changed_feat) || spanel->hw.vrefresh != vrefresh ||
-		spanel->hw.te_freq != te_freq) {
+		test_bit(FEAT_OP_NS, changed_feat) || spanel->hw.te_freq != te_freq) {
 		if (test_bit(FEAT_EARLY_EXIT, feat) && !spanel->force_changeable_te) {
 			if (is_vrr && te_freq == 240) {
 				/* 240Hz multi TE */
@@ -365,11 +374,18 @@ static void ct3a_set_panel_feat(struct exynos_panel *ctx,
 							0xE0, 0x00, 0x01);
 				EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x61);
 			} else {
-				/* 120Hz Fixed TE */
 				if (ctx->panel_rev < PANEL_REV_EVT1)
 					EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x51, 0x51, 0x00, 0x00);
 				else
 					EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x51);
+
+				EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x02, 0xB9);
+				/* Fixed TE */
+				if (test_bit(FEAT_OP_NS, feat) || te_freq != 60) {
+					EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x00);
+				} else {
+					EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x01);
+				}
 			}
 		} else {
 			/* Changeable TE */
@@ -383,28 +399,7 @@ static void ct3a_set_panel_feat(struct exynos_panel *ctx,
 	}
 
 	/*
-	 * Operating Mode: NS or HS
-	 *
-	 * Description: the configs could possibly be overrided by frequency setting,
-	 * depending on FI mode.
-	 */
-	if (test_bit(FEAT_OP_NS, changed_feat)) {
-		/* mode set */
-		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x01);
-		val = test_bit(FEAT_OP_NS, feat) ? 0x18 : 0x00;
-		EXYNOS_DCS_BUF_ADD(ctx, 0x60, val);
-	}
-
-	/*
-	 * Note: the following command sequence should be sent as a whole if one of panel
-	 * state defined by enum panel_state changes or at turning on panel, or unexpected
-	 * behaviors will be seen, e.g. black screen, flicker.
-	 */
-
-	/*
 	 * Early-exit: enable or disable
-	 *
-	 * Description: early-exit sequence overrides some configs HBM set.
 	 */
 	if (is_vrr) {
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x01, 0xBD);
@@ -583,20 +578,9 @@ static void ct3a_update_refresh_mode(struct exynos_panel *ctx,
 					const u32 idle_vrefresh)
 {
 	struct ct3a_panel *spanel = to_spanel(ctx);
-	u32 vrefresh = drm_mode_vrefresh(&pmode->mode);
 
 	dev_info(ctx->dev, "%s: mode: %s set idle_vrefresh: %u\n", __func__,
 		pmode->mode.name, idle_vrefresh);
-
-	if (idle_vrefresh)
-		set_bit(FEAT_FRAME_AUTO, spanel->feat);
-	else
-		clear_bit(FEAT_FRAME_AUTO, spanel->feat);
-
-	if (vrefresh == 120 || idle_vrefresh)
-		set_bit(FEAT_EARLY_EXIT, spanel->feat);
-	else
-		clear_bit(FEAT_EARLY_EXIT, spanel->feat);
 
 	spanel->auto_mode_vrefresh = idle_vrefresh;
 	/*
@@ -741,15 +725,7 @@ static bool ct3a_set_self_refresh(struct exynos_panel *ctx, bool enable)
 
 static void ct3a_refresh_ctrl(struct exynos_panel *ctx, u32 ctrl)
 {
-	const struct exynos_panel_mode *pmode = ctx->current_mode;
-
 	DPU_ATRACE_BEGIN(__func__);
-
-	if (!is_vrr_mode(pmode)) {
-		dev_warn(ctx->dev, "%s: refresh control should be called for vrr mode only\n",
-				__func__);
-		return;
-	}
 
 	if (ctrl & PANEL_REFRESH_CTRL_FI) {
 		dev_dbg(ctx->dev, "%s: performing a frame insertion\n", __func__);
@@ -1140,6 +1116,7 @@ static void ct3a_debugfs_init(struct drm_panel *panel, struct dentry *root)
 #ifdef CONFIG_DEBUG_FS
 	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
 	struct dentry *panel_root, *csroot;
+	struct ct3a_panel *spanel = to_spanel(ctx);
 
 	if (!ctx)
 		return;
@@ -1154,6 +1131,8 @@ static void ct3a_debugfs_init(struct drm_panel *panel, struct dentry *root)
 	}
 
 	exynos_panel_debugfs_create_cmdset(ctx, csroot, &ct3a_init_cmd_set, "init");
+	debugfs_create_bool("force_fi", 0644, panel_root,
+				&spanel->force_fi);
 
 	dput(csroot);
 panel_out:
@@ -1416,6 +1395,7 @@ static const struct exynos_panel_mode ct3a_modes[] = {
 			DRM_MODE_TIMING(60, 2152, 80, 30, 38, 2076, 6, 4, 14),
 			.width_mm = WIDTH_MM,
 			.height_mm = HEIGHT_MM,
+			.flags = DRM_MODE_FLAG_BTS_OP_RATE,
 			.type = DRM_MODE_TYPE_PREFERRED,
 		},
 		.exynos_mode = {
@@ -1425,12 +1405,13 @@ static const struct exynos_panel_mode ct3a_modes[] = {
 			.dsc = CT3A_DSC,
 			.underrun_param = &underrun_param,
 		},
-		.idle_mode = IDLE_MODE_ON_SELF_REFRESH,
+		.idle_mode = IDLE_MODE_UNSUPPORTED,
 	},
 	{
 		.mode = {
 			.name = "2152x2076@120:120",
 			DRM_MODE_TIMING(120, 2152, 80, 30, 38, 2076, 6, 4, 14),
+			.flags = DRM_MODE_FLAG_BTS_OP_RATE,
 			.width_mm = WIDTH_MM,
 			.height_mm = HEIGHT_MM,
 		},
@@ -1442,7 +1423,7 @@ static const struct exynos_panel_mode ct3a_modes[] = {
 			.dsc = CT3A_DSC,
 			.underrun_param = &underrun_param,
 		},
-		.idle_mode = IDLE_MODE_ON_INACTIVITY,
+		.idle_mode = IDLE_MODE_UNSUPPORTED,
 	},
 	/* VRR modes */
 	{
