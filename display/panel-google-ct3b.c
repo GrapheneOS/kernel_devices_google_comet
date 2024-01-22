@@ -1345,7 +1345,41 @@ static const struct exynos_panel_funcs ct3b_exynos_funcs = {
 
 static const struct exynos_brightness_configuration ct3b_btr_configs[] = {
 	{
-		.panel_rev = PANEL_REV_LATEST,
+		.panel_rev = PANEL_REV_EVT1_1 | PANEL_REV_LATEST,
+		.dft_brightness = 1847,    /* 140 nits brightness */
+		.brt_capability = {
+			.normal = {
+				.nits = {
+					.min = 2,
+					.max = 1000,
+				},
+				.level = {
+					.min = 1,
+					.max = 3490,
+				},
+				.percentage = {
+					.min = 0,
+					.max = 63,
+				},
+			},
+			.hbm = {
+				.nits = {
+					.min = 1000,
+					.max = 1600,
+				},
+				.level = {
+					.min = 3491,
+					.max = 3845,
+				},
+				.percentage = {
+					.min = 63,
+					.max = 100,
+				},
+			},
+		},
+	},
+	{
+		.panel_rev = PANEL_REV_EVT1,
 		.dft_brightness = 2084,
 		.brt_capability = {
 			.normal = {
