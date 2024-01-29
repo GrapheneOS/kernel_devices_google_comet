@@ -277,46 +277,29 @@ static void ct3c_freq_change_command(struct exynos_panel *ctx, const u32 vrefres
 			0x11, 0x38, 0x10, 0x1D, 0x0E, 0x9B, 0x0D, 0x18,
 			0x0B, 0x94, 0x0A, 0x15, 0x08, 0x97, 0x07, 0x15,
 			0x02, 0x90, 0x02, 0x90, 0x01, 0x48, 0x01, 0x48);
-	} else if (vrefresh == 120) {
+	} else {
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0xB4, 0x65);
 		EXYNOS_DCS_BUF_ADD(ctx, 0x65, 0x09, 0x90, 0x08, 0x9C, 0x08, 0x9C, 0x08, 0x9C,
 			0x08, 0x9C, 0x08, 0x0E, 0x07, 0x4D, 0x06, 0x8C,
 			0x05, 0xCA, 0x05, 0x0B, 0x04, 0x4C, 0x03, 0x8A,
 			0x01, 0x48, 0x01, 0x48, 0x00, 0xA4, 0x00, 0xA4);
-	} else {
-		/* 90Hz refresh rate */
-		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x01, 0xB4, 0x65);
-		EXYNOS_DCS_BUF_ADD(ctx, 0x65, 0x0C, 0xC0, 0x0B, 0x78, 0x0B, 0x78, 0x0B, 0x78,
-			0x0B, 0x78, 0x0A, 0xBC, 0x09, 0xBC, 0x08, 0xB8,
-			0x07, 0xB8, 0x06, 0xB9, 0x05, 0xBA, 0x04, 0xB8,
-			0x01, 0xB5, 0x01, 0xB5, 0x00, 0xD9, 0x00, 0xD9);
 	}
 	EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x2A, 0x6A);
 
 	/* Gamma change */
-	if (vrefresh == 90) {
-		EXYNOS_DCS_BUF_ADD(ctx, 0x6A, 0x07);
-		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x2B, 0x6A);
-		EXYNOS_DCS_BUF_ADD(ctx, 0x6A, 0x00, 0xC0);
-	} else {
-		EXYNOS_DCS_BUF_ADD(ctx, 0x6A, 0x00, 0x00, 0x00);
-	}
+	EXYNOS_DCS_BUF_ADD(ctx, 0x6A, 0x00, 0x00, 0x00);
 
 	/* Frequency and Porch Change */
 	if (vrefresh == 60) {
 		EXYNOS_DCS_BUF_ADD(ctx, 0x60, 0x00, 0x00);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x0E, 0xF2);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x09, 0x9C);
-	} else if (vrefresh == 120) {
+	} else {
 		EXYNOS_DCS_BUF_ADD(ctx, 0x60, 0x08, 0x00);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x07, 0xF2);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x00, 0x0C);
-	} else {
-		/* 90Hz refresh rate*/
-		EXYNOS_DCS_BUF_ADD(ctx, 0x60, 0x00, 0x04);
-		EXYNOS_DCS_BUF_ADD(ctx, 0xB0, 0x00, 0x07, 0xF2);
-		EXYNOS_DCS_BUF_ADD(ctx, 0xF2, 0x00, 0xAE);
 	}
+
 	EXYNOS_DCS_BUF_ADD_SET(ctx, ltps_update);
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
 }
@@ -324,7 +307,7 @@ static void ct3c_freq_change_command(struct exynos_panel *ctx, const u32 vrefres
 static void ct3c_te_change_command(struct exynos_panel *ctx, const u32 vrefresh)
 {
 	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
-	EXYNOS_DCS_BUF_ADD(ctx, 0xB9, vrefresh == 90 ? 0x00 : 0x01);
+	EXYNOS_DCS_BUF_ADD(ctx, 0xB9, 0x01);
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
 }
 
@@ -332,7 +315,7 @@ static void ct3c_evt_change_frequency(struct exynos_panel *ctx,
 								const struct exynos_panel_mode *pmode)
 {
 	u32 vrefresh = drm_mode_vrefresh(&pmode->mode);
-	if (!ctx || ((vrefresh != 60) && (vrefresh != 90) && (vrefresh != 120)))
+	if (!ctx || ((vrefresh != 60) && (vrefresh != 120)))
 		return;
 
 	ct3c_freq_change_command(ctx, vrefresh);
@@ -737,31 +720,6 @@ static const struct exynos_panel_mode ct3c_modes[] = {
 			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
 			.vblank_usec = 120,
 			.te_usec = 276, /* b/273191882 */
-			.bpc = 8,
-			.dsc = CT3C_DSC,
-			.underrun_param = &underrun_param,
-		},
-	},
-	{
-		.mode = {
-			.name = "1080x2424x90",
-			.clock = 255780,
-			.hdisplay = HDISPLAY,
-			.hsync_start = HDISPLAY + HFP,
-			.hsync_end = HDISPLAY + HFP + HSA,
-			.htotal = HDISPLAY + HFP + HSA + HBP,
-			.vdisplay = VDISPLAY,
-			.vsync_start = VDISPLAY + VFP,
-			.vsync_end = VDISPLAY + VFP + VSA,
-			.vtotal = VDISPLAY + VFP + VSA + VBP,
-			.flags = 0,
-			.width_mm = WIDTH_MM,
-			.height_mm = HEIGHT_MM,
-		},
-		.exynos_mode = {
-			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
-			.vblank_usec = 120,
-			.te_usec = 2860,
 			.bpc = 8,
 			.dsc = CT3C_DSC,
 			.underrun_param = &underrun_param,
