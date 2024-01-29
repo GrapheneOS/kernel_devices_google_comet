@@ -1254,8 +1254,8 @@ static int ct3a_enable(struct drm_panel *panel)
 
 	if (pmode->exynos_mode.is_lp_mode)
 		ct3a_set_lp_mode(ctx, pmode);
-	else
-		EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
+
+	EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
 
 	dev_info(ctx->dev, "%s -\n", __func__);
 
