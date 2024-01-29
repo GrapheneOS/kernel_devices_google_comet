@@ -41,7 +41,10 @@ enum ct3b_panel_feature {
 };
 
 /**
- * The panel effective hardware configurations.
+ * struct ct3b_effective_hw_config - panel effective hardware configurations
+ *
+ * This struct maintains c3a panel configurations that have been committed to
+ * hardware and are currently active.
  */
 struct ct3b_effective_hw_config {
 	/** @feat: correlated feature effective in panel */
@@ -80,6 +83,8 @@ struct ct3b_panel {
 	bool force_changeable_te;
 	/** @force_changeable_te2: force changeable TE (instead of fixed) for monitoring refresh rate */
 	bool force_changeable_te2;
+	/** @force_fi: force to keep frame insertion enabled */
+	bool force_fi;
 	/** @tzd: thermal zone struct */
 	struct thermal_zone_device *tzd;
 	struct ct3b_effective_hw_config hw;
@@ -250,6 +255,7 @@ static const struct exynos_dsi_cmd ct3b_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xBE, 0x5F, 0x4A, 0x49, 0x4F),
 	EXYNOS_DSI_CMD_SEQ(0x6F, 0xC5),
 	EXYNOS_DSI_CMD_SEQ(0xBA, 0x00),
+
 	EXYNOS_DSI_CMD_SEQ(0xFF, 0xAA, 0x55, 0xA5, 0x00),
 	EXYNOS_DSI_CMD_SEQ(0xFF, 0x55, 0xAA, 0x52, 0x00, 0x00),
 	EXYNOS_DSI_CMD_SEQ(0x35),
@@ -379,16 +385,18 @@ static void ct3b_set_panel_feat(struct exynos_panel *ctx,
 	u8 val;
 	DECLARE_BITMAP(changed_feat, FEAT_MAX);
 
+#ifndef PANEL_FACTORY_BUILD
+	vrefresh = 1;
+	idle_vrefresh = 0;
+	set_bit(FEAT_EARLY_EXIT, feat);
+	clear_bit(FEAT_FRAME_AUTO, feat);
 	if (is_vrr) {
-		vrefresh = 1;
-		idle_vrefresh = 0;
-		set_bit(FEAT_EARLY_EXIT, feat);
-		clear_bit(FEAT_FRAME_AUTO, feat);
 		if (pmode->mode.flags & DRM_MODE_FLAG_NS)
 			set_bit(FEAT_OP_NS, feat);
 		else
 			clear_bit(FEAT_OP_NS, feat);
 	}
+#endif
 
 	if (enforce) {
 		bitmap_fill(changed_feat, FEAT_MAX);
@@ -410,6 +418,27 @@ static void ct3b_set_panel_feat(struct exynos_panel *ctx,
 		test_bit(FEAT_FRAME_AUTO, feat) ? "auto" : "manual",
 		vrefresh, idle_vrefresh, te_freq,
 		is_vrr ? "y" : "n");
+
+#ifndef PANEL_FACTORY_BUILD
+	/* TE setting */
+	if (te_freq == 60) {
+		EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xBE, 0x47, 0x4A, 0x49, 0x4F);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x03);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x35, 0x01);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x1C);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xBA, 0x01, 0x01, 0x01, 0x01, 0x77, 0x77, 0x77, 0x77,
+				0x77, 0x77, 0x77, 0x77);
+	} else {
+		EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xBE, 0x47, 0x4A, 0x49, 0x4F);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x03);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x35, 0x00);
+		EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x1C);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xBA, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x00, 0x00, 0x00);
+	}
+#endif
 
 	/*
 	 * Early-exit: enable or disable
@@ -464,11 +493,6 @@ static void ct3b_set_panel_feat(struct exynos_panel *ctx,
 		}
 		EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0x6D, val);
 	} else { /* manual */
-		if (is_vrr) {
-			EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
-			EXYNOS_DCS_BUF_ADD(ctx, 0xBE, 0x47, 0x4A, 0x49, 0x4F);
-		}
-
 		if (vrefresh == 1) {
 			if (ctx->panel_rev < PANEL_REV_EVT1_1)
 				val = 0x03;
@@ -543,14 +567,6 @@ static void ct3b_update_refresh_mode(struct exynos_panel *ctx,
 
 	dev_info(ctx->dev, "%s: mode: %s set idle_vrefresh: %u\n", __func__,
 		pmode->mode.name, idle_vrefresh);
-
-	if (idle_vrefresh) {
-		set_bit(FEAT_FRAME_AUTO, spanel->feat);
-		set_bit(FEAT_EARLY_EXIT, spanel->feat);
-	} else {
-		clear_bit(FEAT_FRAME_AUTO, spanel->feat);
-		clear_bit(FEAT_EARLY_EXIT, spanel->feat);
-	}
 
 	spanel->auto_mode_vrefresh = idle_vrefresh;
 	/*
@@ -1163,6 +1179,7 @@ static const struct exynos_panel_mode ct3b_modes[] = {
 			DRM_MODE_TIMING(60, 2152, 80, 30, 38, 2076, 6, 4, 14),
 			.width_mm = WIDTH_MM,
 			.height_mm = HEIGHT_MM,
+			.flags = DRM_MODE_FLAG_BTS_OP_RATE,
 			.type = DRM_MODE_TYPE_PREFERRED,
 		},
 		.exynos_mode = {
@@ -1172,12 +1189,13 @@ static const struct exynos_panel_mode ct3b_modes[] = {
 			.dsc = CT3B_DSC,
 			.underrun_param = &underrun_param,
 		},
-		.idle_mode = IDLE_MODE_ON_SELF_REFRESH,
+		.idle_mode = IDLE_MODE_UNSUPPORTED,
 	},
 	{
 		.mode = {
 			.name = "2152x2076@120:120",
 			DRM_MODE_TIMING(120, 2152, 80, 30, 38, 2076, 6, 4, 14),
+			.flags = DRM_MODE_FLAG_BTS_OP_RATE,
 			.width_mm = WIDTH_MM,
 			.height_mm = HEIGHT_MM,
 		},
@@ -1189,7 +1207,7 @@ static const struct exynos_panel_mode ct3b_modes[] = {
 			.dsc = CT3B_DSC,
 			.underrun_param = &underrun_param,
 		},
-		.idle_mode = IDLE_MODE_ON_INACTIVITY,
+		.idle_mode = IDLE_MODE_UNSUPPORTED,
 	},
 #ifndef PANEL_FACTORY_BUILD
 	/* VRR modes */
@@ -1262,6 +1280,7 @@ static void ct3b_debugfs_init(struct drm_panel *panel, struct dentry *root)
 {
 	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
 	struct dentry *panel_root, *csroot;
+	struct ct3b_panel *spanel = to_spanel(ctx);
 
 	if (!ctx)
 		return;
@@ -1277,6 +1296,8 @@ static void ct3b_debugfs_init(struct drm_panel *panel, struct dentry *root)
 
 	exynos_panel_debugfs_create_cmdset(ctx, csroot, &ct3b_init_cmd_set, "init");
 	dput(csroot);
+	debugfs_create_bool("force_fi", 0644, panel_root,
+				&spanel->force_fi);
 panel_out:
 	dput(panel_root);
 }
