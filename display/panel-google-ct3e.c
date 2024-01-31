@@ -121,7 +121,6 @@ static const struct exynos_dsi_cmd ct3e_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x26, 0xB9),
 	EXYNOS_DSI_CMD_SEQ(0xB9, 0x00, 0x00, 0x10, 0x00, 0x00,
                         0x3D, 0x00, 0x09, 0x90, 0x00, 0x09, 0x90),
-	EXYNOS_DSI_CMD0(test_key_disable),
 
 	/* CASET: 1080 */
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_COLUMN_ADDRESS, 0x00, 0x00, 0x04, 0x37),
@@ -130,13 +129,18 @@ static const struct exynos_dsi_cmd ct3e_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_PAGE_ADDRESS, 0x00, 0x00, 0x09, 0x77),
 
 	/* FFC 865Mbps */
-	EXYNOS_DSI_CMD0(test_key_enable),
 	EXYNOS_DSI_CMD_SEQ(0xFC, 0x5A, 0x5A),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x3A, 0xC5),
 	EXYNOS_DSI_CMD_SEQ(0xC5, 0x5E, 0xB5), /* 865Mbps FFC Setting */
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x36, 0xC5),
 	EXYNOS_DSI_CMD_SEQ(0xC5, 0x11, 0x10, 0x50, 0x05),
 	EXYNOS_DSI_CMD_SEQ(0xFC, 0xA5, 0xA5),
+
+	/* TSP HSYNC setting */
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x42, 0xB9),
+	EXYNOS_DSI_CMD_SEQ(0xB9, 0x19),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x00, 0x46, 0xB9),
+	EXYNOS_DSI_CMD_SEQ(0xB9, 0xB0),
 	EXYNOS_DSI_CMD0(test_key_disable),
 };
 static DEFINE_EXYNOS_CMD_SET(ct3e_init);
@@ -462,8 +466,7 @@ static const struct exynos_panel_mode ct3e_modes[] = {
 		.exynos_mode = {
 			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
 			.vblank_usec = 120,
-			/* TODO: b/310805932#comment5 - update TE Pulse width for 60Hz/120Hz */
-			.te_usec = 8615,
+			.te_usec = 8605,
 			.bpc = 8,
 			.dsc = CT3E_DSC,
 			.underrun_param = &underrun_param,
@@ -488,7 +491,6 @@ static const struct exynos_panel_mode ct3e_modes[] = {
 		.exynos_mode = {
 			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
 			.vblank_usec = 120,
-			/* TODO: b/310805932#comment5 - Update TE Pulse width for 60Hz/120Hz */
 			.te_usec = 276,
 			.bpc = 8,
 			.dsc = CT3E_DSC,
