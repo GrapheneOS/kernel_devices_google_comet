@@ -148,7 +148,6 @@
 
 &m_ldo14_reg {
 	regulator-boot-on;
-	/delete-property/ regulator-always-on;
 	regulator-min-microvolt = <3000000>;
 	regulator-max-microvolt = <3000000>;
 	schematic-name = "L14M_INNER_DISP_VCI";
@@ -172,7 +171,6 @@
 
 &s_ldo8_reg {
 	regulator-boot-on;
-	/delete-property/ regulator-always-on;
 	regulator-min-microvolt = <3000000>;
 	regulator-max-microvolt = <3000000>;
 	schematic-name = "L8S_OUTER_DISP_VCI";
