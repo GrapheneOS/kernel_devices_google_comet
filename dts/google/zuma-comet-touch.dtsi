@@ -99,6 +99,7 @@
 		goog,v4l2-enabled;
 		goog,tbn-enabled;
 		goog,coord-filter-enabled;
+		goog,panel-notifier-enabled;
 
 		controller-data {
 			samsung,spi-feedback-delay = <0>;
