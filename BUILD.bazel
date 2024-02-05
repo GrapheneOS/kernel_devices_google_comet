@@ -125,7 +125,7 @@ kernel_module_group(
         "//private/google-modules/touch/fts/ftm5",
         "//private/google-modules/touch/goodix",
         "//private/google-modules/touch/sec",
-        "//private/google-modules/touch/synaptics:syna_touch",
+        "//private/google-modules/touch/synaptics/syna_gtd:syna_touch",
         "//private/google-modules/trusty",
         "//private/google-modules/uwb/qorvo/qm35/qm35s:uwb.qm35",
         "//private/google-modules/video/gchips:video.gchips",
