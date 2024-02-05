@@ -386,15 +386,19 @@ static void ct3b_set_panel_feat(struct exynos_panel *ctx,
 	DECLARE_BITMAP(changed_feat, FEAT_MAX);
 
 #ifndef PANEL_FACTORY_BUILD
-	vrefresh = 1;
-	idle_vrefresh = 0;
-	set_bit(FEAT_EARLY_EXIT, feat);
-	clear_bit(FEAT_FRAME_AUTO, feat);
 	if (is_vrr) {
 		if (pmode->mode.flags & DRM_MODE_FLAG_NS)
 			set_bit(FEAT_OP_NS, feat);
 		else
 			clear_bit(FEAT_OP_NS, feat);
+	}
+	if (ctx->panel_rev >= PANEL_REV_DVT1 || !test_bit(FEAT_OP_NS, feat)) {
+		vrefresh = 1;
+		idle_vrefresh = 0;
+		set_bit(FEAT_EARLY_EXIT, feat);
+		clear_bit(FEAT_FRAME_AUTO, feat);
+	} else {
+		clear_bit(FEAT_EARLY_EXIT, feat);
 	}
 #endif
 
@@ -421,17 +425,26 @@ static void ct3b_set_panel_feat(struct exynos_panel *ctx,
 
 #ifndef PANEL_FACTORY_BUILD
 	/* TE setting */
-	if (te_freq == 60 && !test_bit(FEAT_OP_NS, feat)) {
+	if (ctx->panel_rev >= PANEL_REV_DVT1 || !test_bit(FEAT_OP_NS, feat)) {
 		EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xBE, 0x47, 0x4A, 0x49, 0x4F);
-		EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x03);
-		EXYNOS_DCS_BUF_ADD(ctx, 0x35, 0x01);
-		EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x1C);
-		EXYNOS_DCS_BUF_ADD(ctx, 0xBA, 0x01, 0x01, 0x01, 0x01, 0x77, 0x77, 0x77, 0x77,
-				0x77, 0x77, 0x77, 0x77);
+
+		if (te_freq == 60 && !test_bit(FEAT_OP_NS, feat)) {
+			EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x03);
+			EXYNOS_DCS_BUF_ADD(ctx, 0x35, 0x01);
+			EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x1C);
+			EXYNOS_DCS_BUF_ADD(ctx, 0xBA, 0x01, 0x01, 0x01, 0x01, 0x77, 0x77, 0x77, 0x77,
+					0x77, 0x77, 0x77, 0x77);
+		} else {
+			EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x03);
+			EXYNOS_DCS_BUF_ADD(ctx, 0x35, 0x00);
+			EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x1C);
+			EXYNOS_DCS_BUF_ADD(ctx, 0xBA, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00,
+					0x00, 0x00, 0x00, 0x00);
+		}
 	} else {
 		EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
-		EXYNOS_DCS_BUF_ADD(ctx, 0xBE, 0x47, 0x4A, 0x49, 0x4F);
+		EXYNOS_DCS_BUF_ADD(ctx, 0xBE, 0x5F, 0x4A, 0x49, 0x4F);
 		EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x03);
 		EXYNOS_DCS_BUF_ADD(ctx, 0x35, 0x00);
 		EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x1C);
@@ -465,7 +478,7 @@ static void ct3b_set_panel_feat(struct exynos_panel *ctx,
 		/* frame insertion on */
 		EXYNOS_DCS_BUF_ADD(ctx, 0x2F, 0x30);
 		/* target frequency */
-		if (test_bit(FEAT_OP_NS, feat)) {
+		if (test_bit(FEAT_OP_NS, feat) && ctx->panel_rev >= PANEL_REV_DVT1) {
 			if (idle_vrefresh == 30) {
 				val = 0x05;
 			} else if (idle_vrefresh == 10) {
@@ -507,7 +520,7 @@ static void ct3b_set_panel_feat(struct exynos_panel *ctx,
 		}
 		EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0x6D, val);
 	} else { /* manual */
-		if (test_bit(FEAT_OP_NS, feat)) {
+		if (test_bit(FEAT_OP_NS, feat) && ctx->panel_rev >= PANEL_REV_DVT1) {
 			if (vrefresh == 1) {
 				EXYNOS_DCS_BUF_ADD(ctx, 0x2F, 0x30);
 				EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0x6D, 0x07);
