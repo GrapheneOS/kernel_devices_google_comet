@@ -4,4 +4,4 @@
 
 build:comet --//private/google-modules/soc/gs:gs_kernel_build=//private/devices/google/comet:zumapro_comet
 build:comet --//private/google-modules/soc/gs:gs_soc_module=//private/devices/google/comet:zumapro_soc.comet
-
+build:comet --//private/google-modules/aoc/alsa:radio=s5400
