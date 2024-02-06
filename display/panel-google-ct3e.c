@@ -352,7 +352,6 @@ static void ct3e_set_nolp_mode(struct exynos_panel *ctx,
 
 	/* AOD Mode Off Setting */
 	EXYNOS_DCS_BUF_ADD_SET(ctx, test_key_enable);
-	EXYNOS_DCS_BUF_ADD(ctx, 0x91, 0x02);
 	EXYNOS_DCS_BUF_ADD(ctx, 0x53, 0x20);
 	EXYNOS_DCS_BUF_ADD_SET_AND_FLUSH(ctx, test_key_disable);
 
