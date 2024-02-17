@@ -372,14 +372,14 @@
 					"gpio",
 					"pinctrl";
 				power-up-seq-delays-us =
-					<1000
+					<0
+					 0
+					 0
+					 0
+					 0
 					 1000
-					 1000
-					 1000
-					 1000
-					 1000
-					 1000
-					 9000>;
+					 0
+					 2000>;
 
 				/* Power down sequence */
 				power-down-seqs =
@@ -401,13 +401,13 @@
 					"regulator",
 					"regulator";
 				power-down-seq-delays-us =
-					<1000
+					<0
 					 1000
-					 1000
-					 1000
-					 1000
-					 1000
-					 1000
+					 0
+					 0
+					 0
+					 0
+					 0
 					 0>;
 
 				/* Thread priority */
@@ -468,7 +468,7 @@
 					<1000
 					 1500
 					 1000
-					 8000>;
+					 1000>;
 
 				/* Power down sequence */
 				power-down-seqs =
@@ -550,9 +550,9 @@
 				power-up-seq-delays-us =
 					<0
 					 1000
+					 0
 					 1000
-					 1500
-					 1000
+					 0
 					 5000>;
 
 				/* Power down sequence */
@@ -571,12 +571,12 @@
 					"regulator",
 					"regulator";
 				power-down-seq-delays-us =
-					<5000
-					 1000
-					 1000
+					<0
 					 1000
 					 0
-					 1000>;
+					 1000
+					 0
+					 0>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -636,7 +636,7 @@
 					<1000
 					 1500
 					 1000
-					 8000>;
+					 1000>;
 
 				/* Power down sequence */
 				power-down-seqs =
@@ -725,11 +725,11 @@
 					<1000
 					 1000
 					 2500
+					 0
+					 0
 					 1000
-					 1000
-					 1000
-					 1000
-					 10000>;
+					 0
+					 2000>;
 
 				/* Power down sequence */
 				power-down-seqs =
@@ -751,10 +751,10 @@
 					"regulator",
 					"regulator";
 				power-down-seq-delays-us =
-					<1000
+					<0
 					 1000
-					 1000
-					 1000
+					 0
+					 0
 					 2500
 					 1000
 					 1000
@@ -791,9 +791,9 @@
 					"regulator",
 					"regulator";
 				power-up-seq-delays-us =
-					<1000
-					 1000
-					 1000>;
+					<0
+					 0
+					 0>;
 				/* Power down sequence */
 				power-down-seqs =
 					"ldo4",
@@ -804,8 +804,8 @@
 					"regulator",
 					"regulator";
 				power-down-seq-delays-us =
-					<1000
-					 1000
+					<0
+					 0
 					 0>;
 
 				/* Thread priority */
@@ -972,7 +972,7 @@
 					<1000
 					 1000
 					 2500
-					 1000>;
+					 0>;
 
 				/* Power down sequence */
 				power-down-seqs =
@@ -1027,9 +1027,9 @@
 					"regulator",
 					"regulator";
 				power-up-seq-delays-us =
-					<1000
-					 1000
-					 1000>;
+					<0
+					 0
+					 0>;
 
 				/* Power down sequence */
 				power-down-seqs =
@@ -1041,8 +1041,8 @@
 					"regulator",
 					"regulator";
 				power-down-seq-delays-us =
-					<1000
-					 1000
+					<0
+					 0
 					 0>;
 
 				/* Thread priority */
@@ -1136,7 +1136,7 @@
 					<1000
 					 1000
 					 2500
-					 1000>;
+					 0>;
 
 				/* Power down sequence */
 				power-down-seqs =
@@ -1191,9 +1191,9 @@
 					"regulator",
 					"regulator";
 				power-up-seq-delays-us =
-					<1000
-					 1000
-					 1000>;
+					<0
+					 0
+					 0>;
 
 				/* Power down sequence */
 				power-down-seqs =
@@ -1205,8 +1205,8 @@
 					"regulator",
 					"regulator";
 				power-down-seq-delays-us =
-					<1000
-					 1000
+					<0
+					 0
 					 0>;
 
 				/* Thread priority */
@@ -1253,7 +1253,7 @@
 					<1000
 					 1000
 					 2500
-					 1000>;
+					 0>;
 
 				/* Power down sequence */
 				power-down-seqs =
