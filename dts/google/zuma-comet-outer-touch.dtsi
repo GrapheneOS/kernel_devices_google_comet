@@ -27,6 +27,7 @@
 	synaptics,spi-byte-delay-us = <0>;
 	synaptics,spi-block-delay-us = <0>;
 
+	synaptics,pixels-per-mm = <17>;
 	synaptics,panel_map = <&google_ct3c 0>,<&google_ct3d 1>,<&google_ct3e 0>;
 	synaptics,firmware_names = "synaptics.img","synaptics_b.img";
 	synaptics,test_algo = <0 1>;
