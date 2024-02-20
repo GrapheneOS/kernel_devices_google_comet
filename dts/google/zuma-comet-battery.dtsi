@@ -28,7 +28,10 @@
 	};
 };
 
-&max77779_fwupdate {
+&max77779_vimon {
 	status = "okay";
 };
 
+&max77779_fwupdate {
+	status = "okay";
+};
