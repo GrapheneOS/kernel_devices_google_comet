@@ -274,14 +274,12 @@ static void ct3b_update_irc(struct exynos_panel *ctx,
 {
 	if (IS_HBM_ON_IRC_OFF(hbm_mode)) {
 		EXYNOS_DCS_BUF_ADD(ctx, 0x5F, 0x01);
-		EXYNOS_DCS_BUF_ADD(ctx, 0x2F, 0x00);
 		EXYNOS_DCS_BUF_ADD(ctx, 0x26, 0x02);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
 		EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x03);
 		EXYNOS_DCS_BUF_ADD_AND_FLUSH(ctx, 0xC0, 0x32);
 	} else {
 		EXYNOS_DCS_BUF_ADD(ctx, 0x5F, 0x00);
-		EXYNOS_DCS_BUF_ADD(ctx, 0x2F, 0x00);
 		EXYNOS_DCS_BUF_ADD(ctx, 0x26, 0x00);
 		EXYNOS_DCS_BUF_ADD(ctx, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
 		EXYNOS_DCS_BUF_ADD(ctx, 0x6F, 0x03);
