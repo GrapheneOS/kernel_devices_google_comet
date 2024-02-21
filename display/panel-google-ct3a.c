@@ -1769,10 +1769,8 @@ struct exynos_panel_desc google_ct3a = {
 		{PANEL_REG_ID_VCI,  0},
 		{PANEL_REG_ID_VDDR, 10},
 	},
-	.reg_ctrl_pre_disable = {
-		{PANEL_REG_ID_VDDR, 1},
-	},
 	.reg_ctrl_disable = {
+		{PANEL_REG_ID_VDDR, 0},
 		{PANEL_REG_ID_VDDI, 1},
 		{PANEL_REG_ID_VCI, 15},
 	},
