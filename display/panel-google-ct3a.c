@@ -1529,6 +1529,7 @@ static const struct exynos_panel_mode ct3a_modes[] = {
 		},
 		.idle_mode = IDLE_MODE_UNSUPPORTED,
 	},
+#ifndef PANEL_FACTORY_BUILD
 	/* VRR modes */
 	{
 		.mode = {
@@ -1587,6 +1588,7 @@ static const struct exynos_panel_mode ct3a_modes[] = {
 		},
 		.idle_mode = IDLE_MODE_UNSUPPORTED,
 	},
+#endif
 };
 
 const struct brightness_capability ct3a_brightness_capability = {

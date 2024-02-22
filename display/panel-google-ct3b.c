@@ -1191,6 +1191,7 @@ static const struct exynos_panel_mode ct3b_modes[] = {
 		},
 		.idle_mode = IDLE_MODE_ON_INACTIVITY,
 	},
+#ifndef PANEL_FACTORY_BUILD
 	/* VRR modes */
 	{
 		.mode = {
@@ -1211,6 +1212,7 @@ static const struct exynos_panel_mode ct3b_modes[] = {
 		},
 		.idle_mode = IDLE_MODE_UNSUPPORTED,
 	},
+#endif
 };
 
 static const struct exynos_panel_mode ct3b_lp_mode = {
