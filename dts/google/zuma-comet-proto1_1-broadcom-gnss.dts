@@ -18,6 +18,7 @@
 #include "zuma-comet-typec.dtsi"
 #include "google-dts-base/zumapro-board-cp-s5400-sit.dtsi"
 #include "google-dts-base/zumapro-board-cp-s5400-sit-pre-dvt.dtsi"
+#include "google-dts-base/zumapro-cp-s5400-proto.dtsi"
 #include "google-dts-base/zuma-board-pcie-cp-s5400-a0.dtsi"
 #include "google-dts-base/zumapro-phone-gps.dtsi"
 #include "zuma-comet-touch.dtsi"
