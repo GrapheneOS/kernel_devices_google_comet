@@ -7,6 +7,7 @@
  */
 
 #include <dt-bindings/gpio/gpio.h>
+#include "zuma-comet-connector.dtsi"
 
 &dsim_modes {
 	dsim-modes {
@@ -102,18 +103,16 @@
 		vddr-supply = <&disp_vddr_0>;
 		vci-supply = <&m_ldo14_reg>;
 	};
-	google_ct3b: panel@1 {
-		compatible = "google,ct3b";
-		label = "google-ct3b";
-		channel = <0>;
-		/* 0: normal, 1: bottom up, 2: left up, 3: right up */
-		orientation = <2>;
-
-		/* reset, power */
-		reset-gpios = <&gpp0 0 GPIO_ACTIVE_HIGH>;
-		vddi-supply = <&m_ldo24_reg>;
-		vddr-supply = <&disp_vddr_0>;
-		vci-supply = <&m_ldo14_reg>;
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		port@0 {
+			reg = <0>;
+			/* output */
+			dsim1_connector_out: endpoint {
+			remote-endpoint = <&dsim1_connector_in>;
+			};
+		};
 	};
 	panel@2 {
 		compatible = "samsung,emul";
