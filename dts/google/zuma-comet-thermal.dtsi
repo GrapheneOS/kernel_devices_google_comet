@@ -45,16 +45,6 @@
 				hysteresis = <1000>;
 				type = "passive";
 			};
-			backup_shutdown_sw: backup-shutdown-sw {
-				temperature = <123000>;
-				hysteresis = <1000>;
-				type = "critical";
-			};
-			backup_shutdown_hw: backup-shutdown-hw {
-				temperature = <125000>;
-				hysteresis = <1000>;
-				type = "hot";
-			};
 		};
 	};
 	charger_therm {
@@ -64,9 +54,19 @@
 		thermal-sensors = <&zuma_tm1 2>;
 		trips {
 			trip_config2: trip-config2 {
-				temperature = <125000>;
+				temperature = <62000>;
 				hysteresis = <1000>;
 				type = "passive";
+			};
+			backup_shutdown_sw: backup-shutdown-sw {
+				temperature = <64000>;
+				hysteresis = <1000>;
+				type = "critical";
+			};
+			backup_shutdown_hw: backup-shutdown-hw {
+				temperature = <66000>;
+				hysteresis = <1000>;
+				type = "hot";
 			};
 		};
 	};
