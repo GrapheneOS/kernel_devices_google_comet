@@ -12,6 +12,7 @@
 #include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-pmic.dtsi"
 #include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-touch.dtsi"
 #include "google-dts-base/zuma-board-bluetooth.dtsi"
+#include "google-dts-base/zumapro-rmem-proto.dtsi"
 #include "zuma-comet-display.dtsi"
 #include "zuma-comet-ese.dtsi"
 #include "zuma-comet-nfc.dtsi"
