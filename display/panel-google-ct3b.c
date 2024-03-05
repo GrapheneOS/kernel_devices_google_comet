@@ -941,7 +941,6 @@ static int ct3b_enable(struct drm_panel *panel)
 	}
 
 	EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_SET_DISPLAY_ON);
-	usleep_range(200000, 200010);
 
 	DPU_ATRACE_END(__func__);
 
