@@ -396,6 +396,7 @@ static int ct3d_atomic_check(struct exynos_panel *ctx, struct drm_atomic_state *
 	return 0;
 }
 
+#define MAX_BR_HBM_IRC_OFF 4095
 static int ct3d_set_brightness(struct exynos_panel *ctx, u16 br)
 {
 	u16 brightness;
@@ -412,6 +413,12 @@ static int ct3d_set_brightness(struct exynos_panel *ctx, u16 br)
 	if (!br) {
 		/* turn off panel and set brightness directly. */
 		return exynos_dcs_set_brightness(ctx, 0);
+	}
+
+	if (IS_HBM_ON_IRC_OFF(ctx->hbm_mode) &&
+	    br == ctx->desc->brt_capability->hbm.level.max) {
+		br = MAX_BR_HBM_IRC_OFF;
+		dev_dbg(ctx->dev, "apply max DBV when reach hbm max with irc off\n");
 	}
 
 	brightness = __swab16(br);
