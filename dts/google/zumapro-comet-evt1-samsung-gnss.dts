@@ -24,6 +24,7 @@
 #include "zuma-comet-wlan.dtsi"
 #include "zuma-comet-gnss-samsung.dtsi"
 #include "zuma-comet-wcharger-evt-boe.dtsi"
+#include "zumapro-comet-wifi-4390a0.dtsi"
 
 / {
 	board_id = <0x60603>;
