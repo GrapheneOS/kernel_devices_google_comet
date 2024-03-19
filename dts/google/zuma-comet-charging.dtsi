@@ -27,4 +27,5 @@
 &max1720x_fg {
 	pinctrl-0 = <&alrt_gauge_m_irq>;
 	maxim,irq-gpio = <&gpa6 5 GPIO_ACTIVE_LOW>;
+	maxim,status-charge-threshold-ma = <70>;
 };
