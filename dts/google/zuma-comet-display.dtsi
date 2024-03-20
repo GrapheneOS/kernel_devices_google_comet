@@ -42,18 +42,7 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	google_ct3c: panel@0 {
-		compatible = "google,ct3c";
-		label = "google-ct3c";
-		channel = <0>;
-
-		/* reset, power */
-		reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
-		vddi-supply = <&s_ldo29_reg>;
-		vddd-supply = <&disp_vddd>;
-		vci-supply = <&s_ldo8_reg>;
-	};
-	panel@1 {
+	panel@0 {
 		compatible = "samsung,emul";
 		label = "samsung-emul";
 		channel = <0>;
