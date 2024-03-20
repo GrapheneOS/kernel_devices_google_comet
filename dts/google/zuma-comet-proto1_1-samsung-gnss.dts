@@ -30,6 +30,7 @@
 #include "zuma-comet-fingerprint.dtsi"
 #include "zuma-comet-uwb.dtsi"
 #include "zuma-comet-gnss-samsung.dtsi"
+#include "zuma-comet-wifi-4390a0.dtsi"
 
 / {
 	board_id = <0x40602>;
