@@ -57,6 +57,15 @@ static const struct exynos_dsi_cmd ct3d_lp_off_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x00, 0x00),
 };
 
+static const struct exynos_dsi_cmd ct3d_lp_night_cmds[] = {
+	/* 2 nit */
+	EXYNOS_DSI_CMD_SEQ(0x6F, 0x04),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1_1),
+				MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x00, 0x03),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1_1),
+				MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x03, 0x33),
+};
+
 static const struct exynos_dsi_cmd ct3d_lp_low_cmds[] = {
 	/* 10 nit */
 	EXYNOS_DSI_CMD_SEQ(0x6F, 0x04),
@@ -75,6 +84,7 @@ static const struct exynos_dsi_cmd ct3d_lp_high_cmds[] = {
 static const struct exynos_binned_lp ct3d_binned_lp[] = {
 	BINNED_LP_MODE("off", 0, ct3d_lp_off_cmds),
 	/* rising = 0, falling = 32 */
+	BINNED_LP_MODE_TIMING("night", 105, ct3d_lp_night_cmds, 0, 32),
 	BINNED_LP_MODE_TIMING("low", 871, ct3d_lp_low_cmds, 0, 32),
 	BINNED_LP_MODE_TIMING("high", 3628, ct3d_lp_high_cmds, 0, 32),
 };

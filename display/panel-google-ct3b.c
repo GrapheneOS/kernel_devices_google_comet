@@ -92,10 +92,22 @@ struct ct3b_panel {
 
 #define to_spanel(ctx) container_of(ctx, struct ct3b_panel, base)
 
+static const struct exynos_dsi_cmd ct3b_lp_night_cmds[] = {
+	/* 2 nit */
+	EXYNOS_DSI_CMD_SEQ(0x6F, 0x04),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1_1),
+				MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x00, 0x03),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1_1),
+				MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x03, 0x33),
+};
+
 static const struct exynos_dsi_cmd ct3b_lp_low_cmds[] = {
 	/* 10 nit */
 	EXYNOS_DSI_CMD_SEQ(0x6F, 0x04),
-	EXYNOS_DSI_CMD_SEQ(MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x03, 0x33),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1_1),
+				MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x07, 0xB2),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1_1),
+				MIPI_DCS_SET_DISPLAY_BRIGHTNESS, 0x03, 0x33),
 };
 
 static const struct exynos_dsi_cmd ct3b_lp_high_cmds[] = {
@@ -106,6 +118,9 @@ static const struct exynos_dsi_cmd ct3b_lp_high_cmds[] = {
 
 static const struct exynos_binned_lp ct3b_binned_lp[] = {
 	/* rising = 0, falling = 32 */
+	/* night threshold 4 nits */
+	BINNED_LP_MODE_TIMING("night", 251, ct3b_lp_night_cmds, 0, 32),
+	/* low threshold 40 nits */
 	BINNED_LP_MODE_TIMING("low", 1094, ct3b_lp_low_cmds, 0, 32),
 	BINNED_LP_MODE_TIMING("high", 3739, ct3b_lp_high_cmds, 0, 32),
 };
