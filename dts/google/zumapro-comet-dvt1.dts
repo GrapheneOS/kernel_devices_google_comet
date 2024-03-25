@@ -10,6 +10,7 @@
 
 #include "zumapro-comet-common.dtsi"
 #include "zumapro-comet-usecases.dtsi"
+#include "zumapro-comet-pmic-dvt.dtsi"
 #include "zuma-comet-typec.dtsi"
 #include "google-dts-base/zumapro-board-cp-s5400-sit.dtsi"
 #include "google-dts-base/zumapro-board-pcie-cp-s5400-a1.dtsi"
