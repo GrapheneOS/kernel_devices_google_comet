@@ -262,7 +262,33 @@ static const struct gs_dsi_cmd ct3b_init_cmds[] = {
 	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0x6F, 0x48),
 	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0xD2, 0xC0),
 
+	/* ACD off */
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0x55, 0x00),
 	GS_DSI_CMD(0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0xB0, 0x0C),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0x6F, 0x09),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0xB0, 0x2A, 0x2B, 0x2A),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0x6F, 0x0C),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0xB0, 0x0F, 0x05, 0x32),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0xB1, 0x35, 0x35, 0x35),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0x6F, 0x03),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0xB1, 0x00, 0x35),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0x6F, 0x14),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0xB1, 0x00, 0x35),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0x6F, 0x16),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0xB1, 0x00, 0x35),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0x6F, 0x05),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0xB1, 0x12, 0x34, 0x57, 0x89,
+				0x2C, 0x58, 0x84, 0xB0, 0xDC, 0x08, 0x34, 0x60),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0x6F, 0x21),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0xB1, 0x00, 0x00, 0x24, 0x68,
+				0xAC, 0xEF, 0x00, 0x00,	0x00, 0x00, 0x00, 0x00, 0x00, 0xFF),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0x6F, 0x18),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0xB1, 0x04, 0x34, 0x08, 0x68,
+				0x04, 0x34),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0x6F, 0x1E),
+	GS_DSI_REV_CMD(PANEL_REV_LT(PANEL_REV_PVT), 0xB1, 0x11, 0x0A, 0xD8),
+
 	GS_DSI_CMD(0xBE, 0x5F, 0x4A, 0x49, 0x4F),
 	GS_DSI_CMD(0x6F, 0xC5),
 	GS_DSI_CMD(0xBA, 0x00),
@@ -289,15 +315,29 @@ static DEFINE_GS_CMDSET(ct3b_init);
 
 static void ct3b_update_irc(struct gs_panel *ctx, const enum gs_hbm_mode hbm_mode)
 {
+	const u16 br = gs_panel_get_brightness(ctx);
 	struct device *dev = ctx->dev;
 
 	if (GS_IS_HBM_ON_IRC_OFF(hbm_mode)) {
+		if (br == ctx->desc->brightness_desc->brt_capability->hbm.level.max) {
+			GS_DCS_BUF_ADD_CMD(dev, 0x51, 0x0F, 0xFF);
+			/* ACD level.1 */
+			GS_DCS_BUF_ADD_CMD(dev, 0x55, 0x04);
+		}
+
 		GS_DCS_BUF_ADD_CMD(dev, 0x5F, 0x01);
 		GS_DCS_BUF_ADD_CMD(dev, 0x26, 0x02);
 		GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
 		GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x03);
 		GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0xC0, 0x32);
 	} else {
+		const u8 val1 = br >> 8;
+		const u8 val2 = br & 0xff;
+
+		GS_DCS_BUF_ADD_CMD(dev, MIPI_DCS_SET_DISPLAY_BRIGHTNESS, val1, val2);
+		/* ACD off */
+		GS_DCS_BUF_ADD_CMD(dev, 0x55, 0x00);
+
 		GS_DCS_BUF_ADD_CMD(dev, 0x5F, 0x00);
 		GS_DCS_BUF_ADD_CMD(dev, 0x26, 0x00);
 		GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
@@ -1223,6 +1263,7 @@ static bool is_dbv_range_changed(struct gs_panel *ctx, u16 br)
 
 static int ct3b_set_brightness(struct gs_panel *ctx, u16 br)
 {
+	struct device *dev = ctx->dev;
 	u16 brightness;
 
 	if (ctx->current_mode->gs_mode.is_lp_mode) {
@@ -1235,8 +1276,14 @@ static int ct3b_set_brightness(struct gs_panel *ctx, u16 br)
 	}
 
 	if (GS_IS_HBM_ON_IRC_OFF(ctx->hbm_mode) &&
-		    br == ctx->desc->brightness_desc->brt_capability->hbm.level.max)
+		    br == ctx->desc->brightness_desc->brt_capability->hbm.level.max) {
+		/* ACD level.1 */
+		GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x55, 0x04);
 		br = 0xfff;
+	} else {
+		/* ACD off */
+		GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x55, 0x00);
+	}
 
 	if (ctx->panel_rev >= PANEL_REV_EVT1_1 && is_dbv_range_changed(ctx, br))
 		ct3b_set_gamma_setting(ctx);
