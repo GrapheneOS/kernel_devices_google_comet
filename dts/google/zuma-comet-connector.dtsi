@@ -45,7 +45,21 @@
 					vci-supply = <&m_ldo14_reg>;
 				};
 
-				panel@1 {
+				google_gs_ct3a: panel@1 {
+					compatible = "google,gs-ct3a";
+					label = "google-ct3a";
+					channel = <0>;
+					/* 0: normal, 1: bottom up, 2: left up, 3: right up */
+					orientation = <2>;
+
+					/* reset, power */
+					reset-gpios = <&gpp0 0 GPIO_ACTIVE_HIGH>;
+					vddi-supply = <&m_ldo24_reg>;
+					vddr-supply = <&disp_vddr_0>;
+					vci-supply = <&m_ldo14_reg>;
+				};
+
+				panel@2 {
 					compatible = "google,panel-gs-simple";
 					label = "samsung-emul";
 					channel = <0>;
