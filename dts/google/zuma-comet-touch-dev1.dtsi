@@ -83,7 +83,7 @@
 		goodix,sleep-enable;
 		goodix,use-one-binary;
 
-		goog,panel_map = <&google_ct3a 0>;
+		goog,panel_map = <&google_gs_ct3a 0>;
 
 		goog,firmware_names = "goodix_firmware.bin";
 		goodix,firmware-name = "goodix_firmware.bin";
@@ -105,6 +105,6 @@
 	};
 };
 
-&google_ct3a {
+&google_gs_ct3a {
 	touch = <&inner_touch>;
 };
