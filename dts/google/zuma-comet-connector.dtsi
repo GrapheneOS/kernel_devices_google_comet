@@ -1,0 +1,47 @@
+
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Display connector nodes for comet-related boards.
+ *
+ * Copyright 2024 Google LLC
+ *
+ */
+
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	fragment@display {
+		target-path = "/";
+		__overlay__ {
+			gs_connector: gs-drm-connector {
+				compatible = "google,drm_connector";
+				label = "gs-drm-connector";
+
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port {
+					/* input */
+					dsim1_connector_in: endpoint {
+						remote-endpoint = <&dsim1_connector_out>;
+					};
+				};
+
+				/* panels will go here */
+				google_gs_ct3b: panel@1 {
+					compatible = "google,gs-ct3b";
+					label = "google-ct3b";
+					channel = <0>;
+					/* 0: normal, 1: bottom up, 2: left up, 3: right up */
+					orientation = <2>;
+
+					/* reset, power */
+					reset-gpios = <&gpp0 0 GPIO_ACTIVE_HIGH>;
+					vddi-supply = <&m_ldo24_reg>;
+					vddr-supply = <&disp_vddr_0>;
+					vci-supply = <&m_ldo14_reg>;
+				};
+			};
+		};
+	};
+};
