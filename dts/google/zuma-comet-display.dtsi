@@ -53,18 +53,7 @@
 		vddd-supply = <&disp_vddd>;
 		vci-supply = <&s_ldo8_reg>;
 	};
-	google_ct3e: panel@1 {
-		compatible = "google,ct3e";
-		label = "google-ct3e";
-		channel = <0>;
-
-		/* reset, power */
-		reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
-		vddi-supply = <&s_ldo29_reg>;
-		vddd-supply = <&disp_vddd>;
-		vci-supply = <&s_ldo8_reg>;
-	};
-	panel@2 {
+	panel@1 {
 		compatible = "samsung,emul";
 		label = "samsung-emul";
 		channel = <0>;
