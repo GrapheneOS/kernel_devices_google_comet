@@ -3,10 +3,10 @@ M ?= $(shell pwd)
 KBASE_PATH_RELATIVE = $(M)
 
 KBUILD_OPTIONS += CONFIG_DRM_PANEL_GOOGLE_CT3A=m
-KBUILD_OPTIONS += CONFIG_DRM_PANEL_GOOGLE_CT3B=m
 KBUILD_OPTIONS += CONFIG_DRM_PANEL_GOOGLE_CT3C=m
 KBUILD_OPTIONS += CONFIG_DRM_PANEL_GOOGLE_CT3D=m
 KBUILD_OPTIONS += CONFIG_DRM_PANEL_GOOGLE_CT3E=m
+KBUILD_OPTIONS += CONFIG_DRM_PANEL_GS_CT3B=m
 
 EXTRA_CFLAGS += -DDYNAMIC_DEBUG_MODULE=1
 EXTRA_CFLAGS += -I$(KERNEL_SRC)/../private/google-modules/display/common/include
@@ -14,6 +14,7 @@ EXTRA_CFLAGS += -I$(KERNEL_SRC)/../private/google-modules/display/samsung
 EXTRA_CFLAGS += -I$(KERNEL_SRC)/../private/google-modules/display/samsung/include/uapi
 EXTRA_CFLAGS += -Werror
 
+EXTRA_SYMBOLS += $(OUT_DIR)/../private/google-modules/display/common/gs_panel/Module.symvers
 EXTRA_SYMBOLS += $(OUT_DIR)/../private/google-modules/display/samsung/Module.symvers
 
 include $(KERNEL_SRC)/../private/google-modules/soc/gs/Makefile.include

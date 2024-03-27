@@ -3,7 +3,7 @@
 # (platform common modules are from vendor_kernel_boot_modules.zuma)
 #
 panel-google-ct3a.ko
-panel-google-ct3b.ko
 panel-google-ct3c.ko
 panel-google-ct3d.ko
 panel-google-ct3e.ko
+panel-gs-ct3b.ko

@@ -18,10 +18,10 @@ kernel_module(
     outs = [
         # keep sorted
         "panel-google-ct3a.ko",
-        "panel-google-ct3b.ko",
         "panel-google-ct3c.ko",
         "panel-google-ct3d.ko",
         "panel-google-ct3e.ko",
+        "panel-gs-ct3b.ko",
     ],
     kernel_build = "//private/google-modules/soc/gs:gs_kernel_build",
     visibility = [
@@ -29,6 +29,7 @@ kernel_module(
         "//private/google-modules/soc/gs:__pkg__",
     ],
     deps = [
+        "//private/google-modules/display/common/gs_panel",
         "//private/google-modules/display/samsung:display.samsung",
         "//private/google-modules/soc/gs:gs_soc_module",
     ],
