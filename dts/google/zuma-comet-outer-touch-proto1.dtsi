@@ -36,7 +36,7 @@
 	goodix,use-one-binary;
 
 	goog,panel_map = <&google_gs_ct3b 0>,
-			<&google_ct3c 1>;
+			<&google_gs_ct3c 1>;
 
 	goog,firmware_names = "goodix_firmware_outer_dev1.bin",
 			"goodix_firmware_outer.bin";
@@ -65,6 +65,7 @@
 &google_gs_ct3b {
 	touch = <&outer_touch>;
 };
-&google_ct3c {
+
+&google_gs_ct3c {
 	touch = <&outer_touch>;
 };

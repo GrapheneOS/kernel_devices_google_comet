@@ -111,7 +111,19 @@
 					vci-supply = <&s_ldo8_reg>;
 				};
 
-				panel@2 {
+				google_gs_ct3c: panel@2 {
+					compatible = "google,gs-ct3c";
+					label = "google-ct3c";
+					channel = <0>;
+
+					/* reset, power */
+					reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
+					vddi-supply = <&s_ldo29_reg>;
+					vddd-supply = <&disp_vddd>;
+					vci-supply = <&s_ldo8_reg>;
+				};
+
+				panel@3 {
 					compatible = "google,panel-gs-simple";
 					label = "samsung-emul";
 					channel = <0>;
