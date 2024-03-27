@@ -28,11 +28,11 @@
 	synaptics,spi-block-delay-us = <0>;
 
 	synaptics,pixels-per-mm = <17>;
-	synaptics,panel_map = <&google_ct3c 0>,<&google_ct3d 1>,<&google_ct3e 2>;
+	synaptics,panel_map = <&google_ct3c 0>,<&google_gs_ct3d 1>,<&google_ct3e 2>;
 	synaptics,firmware_names = "synaptics.img","synaptics_b.img","synaptics_c.img";
 	synaptics,test_algo = <0 1>;
 
-	goog,panel_map = <&google_ct3c 0>,<&google_ct3d 1>,<&google_ct3e 2>;
+	goog,panel_map = <&google_ct3c 0>,<&google_gs_ct3d 1>,<&google_ct3e 2>;
 
 	goog,dev-id = <1>;
 	goog,offload-device-name = "outer";
@@ -827,7 +827,7 @@
 	touch = <&outer_touch>;
 };
 
-&google_ct3d {
+&google_gs_ct3d {
 	touch = <&outer_touch>;
 };
 

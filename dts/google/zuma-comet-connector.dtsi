@@ -13,9 +13,12 @@
 	fragment@display {
 		target-path = "/";
 		__overlay__ {
-			gs_connector: gs-drm-connector {
+			gs_connector1: gs-drm-connector1 {
 				compatible = "google,drm_connector";
 				label = "gs-drm-connector";
+
+				/* 0: primary, 1: secondary */
+				google,device-index = <0>;
 
 				#address-cells = <1>;
 				#size-cells = <0>;
@@ -28,7 +31,7 @@
 				};
 
 				/* panels will go here */
-				google_gs_ct3b: panel@1 {
+				google_gs_ct3b: panel@0 {
 					compatible = "google,gs-ct3b";
 					label = "google-ct3b";
 					channel = <0>;
@@ -40,6 +43,55 @@
 					vddi-supply = <&m_ldo24_reg>;
 					vddr-supply = <&disp_vddr_0>;
 					vci-supply = <&m_ldo14_reg>;
+				};
+
+				panel@1 {
+					compatible = "google,panel-gs-simple";
+					label = "samsung-emul";
+					channel = <0>;
+
+					/* reset, power */
+					reset-gpios = <&gpp0 0 GPIO_ACTIVE_HIGH>;
+				};
+			};
+
+			gs_connector0: gs-drm-connector0 {
+				compatible = "google,drm_connector";
+				label = "gs-drm-connector";
+
+				/* 0: primary, 1: secondary */
+				google,device-index = <1>;
+
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port {
+					/* input */
+					dsim0_connector_in: endpoint {
+						remote-endpoint = <&dsim0_connector_out>;
+					};
+				};
+
+				/* panels will go here */
+				google_gs_ct3d: panel@0 {
+					compatible = "google,gs-ct3d";
+					label = "google-ct3d";
+					channel = <0>;
+
+					/* reset, power */
+					reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
+					vddi-supply = <&s_ldo29_reg>;
+					vddd-supply = <&disp_vddd>;
+					vci-supply = <&s_ldo8_reg>;
+				};
+
+				panel@1 {
+					compatible = "google,panel-gs-simple";
+					label = "samsung-emul";
+					channel = <0>;
+
+					/* reset, power */
+					reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
 				};
 			};
 		};

@@ -19,9 +19,9 @@ kernel_module(
         # keep sorted
         "panel-google-ct3a.ko",
         "panel-google-ct3c.ko",
-        "panel-google-ct3d.ko",
         "panel-google-ct3e.ko",
         "panel-gs-ct3b.ko",
+        "panel-gs-ct3d.ko",
     ],
     kernel_build = "//private/google-modules/soc/gs:gs_kernel_build",
     visibility = [

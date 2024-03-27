@@ -53,18 +53,7 @@
 		vddd-supply = <&disp_vddd>;
 		vci-supply = <&s_ldo8_reg>;
 	};
-	google_ct3d: panel@1 {
-		compatible = "google,ct3d";
-		label = "google-ct3d";
-		channel = <0>;
-
-		/* reset, power */
-		reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
-		vddi-supply = <&s_ldo29_reg>;
-		vddd-supply = <&disp_vddd>;
-		vci-supply = <&s_ldo8_reg>;
-	};
-	google_ct3e: panel@2 {
+	google_ct3e: panel@1 {
 		compatible = "google,ct3e";
 		label = "google-ct3e";
 		channel = <0>;
@@ -75,13 +64,24 @@
 		vddd-supply = <&disp_vddd>;
 		vci-supply = <&s_ldo8_reg>;
 	};
-	panel@3 {
+	panel@2 {
 		compatible = "samsung,emul";
 		label = "samsung-emul";
 		channel = <0>;
 
 		/* reset, power */
 		reset-gpios = <&gpp20 2 GPIO_ACTIVE_HIGH>;
+	};
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		port@0 {
+			reg = <0>;
+			/* output */
+			dsim0_connector_out: endpoint {
+			remote-endpoint = <&dsim0_connector_in>;
+			};
+		};
 	};
 };
 
@@ -103,6 +103,14 @@
 		vddr-supply = <&disp_vddr_0>;
 		vci-supply = <&m_ldo14_reg>;
 	};
+	panel@1 {
+		compatible = "samsung,emul";
+		label = "samsung-emul";
+		channel = <0>;
+
+		/* reset, power */
+		reset-gpios = <&gpp0 0 GPIO_ACTIVE_HIGH>;
+	};
 	ports {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -113,14 +121,6 @@
 			remote-endpoint = <&dsim1_connector_in>;
 			};
 		};
-	};
-	panel@2 {
-		compatible = "samsung,emul";
-		label = "samsung-emul";
-		channel = <0>;
-
-		/* reset, power */
-		reset-gpios = <&gpp0 0 GPIO_ACTIVE_HIGH>;
 	};
 };
 
