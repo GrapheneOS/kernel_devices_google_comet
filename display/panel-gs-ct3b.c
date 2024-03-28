@@ -315,6 +315,24 @@ static u32 ct3b_get_min_idle_vrefresh(struct gs_panel *ctx,
 	return min_idle_vrefresh;
 }
 
+static void ct3b_set_panel_feat_auto_fi(struct gs_panel *ctx)
+{
+	struct device *dev = ctx->dev;
+	bool enabled;
+	u8 val;
+
+	enabled = test_bit(FEAT_FI_AUTO, ctx->sw_status.feat);
+	val = enabled ? 0x51 : 0x01;
+
+	GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
+	GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x9C);
+	GS_DCS_BUF_ADD_CMD(dev, 0xBA, val);
+	GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0xA4);
+	GS_DCS_BUF_ADD_CMD(dev, 0xBA, 0x00, 0x01);
+
+	dev_dbg(ctx->dev, "%s: auto fi %s\n", __func__, enabled ? "enabled" : "disabled");
+}
+
 static void ct3b_set_panel_feat_frequency(struct gs_panel *ctx, unsigned long *feat, u32 vrefresh,
 				    u32 idle_vrefresh, bool is_vrr)
 {
@@ -535,6 +553,12 @@ static void ct3b_set_panel_feat(struct gs_panel *ctx,
 		GS_DCS_BUF_ADD_CMD(dev, 0x6D, 0x00);
 		GS_DCS_BUF_ADD_CMD(dev, 0x5A, 0x01);
 	}
+
+	/*
+	 * Auto FI: enable or disable
+	 */
+	if (test_bit(FEAT_FI_AUTO, changed_feat))
+		ct3b_set_panel_feat_auto_fi(ctx);
 
 	/*
 	 * Frequency setting: FI, frequency, idle frequency
@@ -921,6 +945,31 @@ static int ct3b_enable(struct drm_panel *panel)
 	PANEL_ATRACE_END(__func__);
 
 	return 0;
+}
+
+static void ct3b_refresh_ctrl(struct gs_panel *ctx)
+{
+	const u32 ctrl = ctx->refresh_ctrl;
+	struct device *dev = ctx->dev;
+
+	PANEL_ATRACE_BEGIN(__func__);
+
+	if (ctrl & GS_PANEL_REFRESH_CTRL_FI_AUTO) {
+		set_bit(FEAT_FI_AUTO, ctx->sw_status.feat);
+		ct3b_update_panel_feat(ctx, false);
+	} else {
+		clear_bit(FEAT_FI_AUTO, ctx->sw_status.feat);
+		ct3b_update_panel_feat(ctx, false);
+
+		if (ctrl & GS_PANEL_REFRESH_CTRL_FI_REFRESH_RATE_MASK) {
+			dev_warn(dev, "%s: setting frame insertion rate unsupported\n", __func__);
+		} else {
+			dev_dbg(dev, "%s: manually inserting frame\n", __func__);
+			GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x2C, 0x00);
+		}
+	}
+
+	PANEL_ATRACE_END(__func__);
 }
 
 static int ct3b_atomic_check(struct gs_panel *ctx, struct drm_atomic_state *state)
@@ -1385,6 +1434,11 @@ static void ct3b_panel_init(struct gs_panel *ctx)
 
 #ifdef PANEL_FACTORY_BUILD
 	ctx->idle_data.panel_idle_enabled = false;
+	set_bit(FEAT_FRAME_AUTO, ctx->sw_status.feat);
+	set_bit(FEAT_FI_AUTO, ctx->sw_status.feat);
+#else
+	clear_bit(FEAT_FI_AUTO, ctx->sw_status.feat);
+	clear_bit(FEAT_FRAME_AUTO, ctx->sw_status.feat);
 #endif
 
 	/* re-init panel to decouple bootloader settings */
@@ -1540,6 +1594,7 @@ static const struct gs_panel_funcs ct3b_gs_funcs = {
 	.commit_done = ct3b_commit_done,
 	.set_self_refresh = ct3b_set_self_refresh,
 	.set_dimming = ct3b_set_dimming_on,
+	.refresh_ctrl = ct3b_refresh_ctrl,
 	.set_op_hz = ct3b_set_op_hz,
 	.is_mode_seamless = ct3b_is_mode_seamless,
 	.mode_set = ct3b_mode_set,
