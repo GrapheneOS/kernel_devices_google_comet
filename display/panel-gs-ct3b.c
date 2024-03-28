@@ -976,9 +976,7 @@ static void ct3b_refresh_ctrl(struct gs_panel *ctx)
 		clear_bit(FEAT_FI_AUTO, ctx->sw_status.feat);
 		ct3b_update_panel_feat(ctx, false);
 
-		if (ctrl & GS_PANEL_REFRESH_CTRL_FI_REFRESH_RATE_MASK) {
-			dev_warn(dev, "%s: setting frame insertion rate unsupported\n", __func__);
-		} else {
+		if (ctrl & GS_PANEL_REFRESH_CTRL_FI_FRAME_COUNT_MASK) {
 			dev_dbg(dev, "%s: manually inserting frame\n", __func__);
 			GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x2C, 0x00);
 		}
