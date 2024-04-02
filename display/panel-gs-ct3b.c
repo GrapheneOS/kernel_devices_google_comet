@@ -1641,6 +1641,7 @@ struct gs_panel_desc gs_ct3b = {
 	.hdr_formats = BIT(2) | BIT(3),
 	.bl_range = ct3b_bl_range,
 	.modes = &ct3b_modes,
+	.rr_switch_duration = 1,
 	.is_idle_supported = true,
 	.off_cmdset = &ct3b_off_cmdset,
 	.lp_modes = &ct3b_lp_mode,
