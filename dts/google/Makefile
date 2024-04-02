@@ -29,7 +29,9 @@ zumapro_comet_overlays := \
 	zumapro-comet-evt1-samsung-gnss-sdc.dtbo \
 	zumapro-comet-evt1-broadcom-gnss-sdc.dtbo \
 	zumapro-comet-evt1_1.dtbo \
-	zumapro-comet-dvt1.dtbo
+	zumapro-comet-dvt1.dtbo \
+	zumapro-comet-pvt1.dtbo \
+	zumapro-comet-mp.dtbo
 
 # zumapro dtb
 zumapro_comet_dtbs := \
