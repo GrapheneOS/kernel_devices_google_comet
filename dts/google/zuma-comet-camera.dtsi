@@ -310,6 +310,281 @@
 	fragment@lwiscamera {
 		target-path = "/";
 		__overlay__ {
+			/* Power sequence for INNER-FRONT CAMERA SVAROG combo */
+			inner_front_camera_power_seq: module_power_seq@0 {
+				/* Power supplies will be defined on each module. */
+				/* Sensor */
+				/* VDDIO         s2mpg15_ldo12 */
+				/* VDIG,VDDA     gpio3 */
+				/* RESET         reset */
+				/* MCLK_ON       mclk_on */
+				power-up-seqs =
+					"s2mpg15_ldo12",
+					"gpio3",
+					"reset",
+					"mclk_on";
+				power-up-seq-types =
+					"regulator",
+					"regulator",
+					"gpio",
+					"pinctrl";
+				power-up-seq-delays-us =
+					<1000
+					 1500
+					 1000
+					 1000>;
+
+				power-down-seqs =
+					"mclk_off",
+					"reset",
+					"gpio3",
+					"s2mpg15_ldo12";
+				power-down-seq-types =
+					"pinctrl",
+					"gpio",
+					"regulator",
+					"regulator";
+				power-down-seq-delays-us =
+					<1000
+					 1000
+					 1000
+					 0>;
+			};
+
+
+			/* Power sequence for OUTER-FRONT CAMERA SVAROG combo */
+			outer_front_camera_power_seq: module_power_seq@1 {
+				/* Power supplies will be defined on each module. */
+				/* Sensor */
+				/* VDDIO         s2mpg15_ldo12 */
+				/* VDIG,VDDA     gpio4 */
+				/* RESET         reset */
+				/* MCLK_ON       mclk_on */
+				power-up-seqs =
+					"s2mpg15_ldo12",
+					"gpio4",
+					"reset",
+					"mclk_on";
+				power-up-seq-types =
+					"regulator",
+					"regulator",
+					"gpio",
+					"pinctrl";
+				power-up-seq-delays-us =
+					<1000
+					 1500
+					 1000
+					 1000>;
+
+				power-down-seqs =
+					"mclk_off",
+					"reset",
+					"gpio4",
+					"s2mpg15_ldo12";
+				power-down-seq-types =
+					"pinctrl",
+					"gpio",
+					"regulator",
+					"regulator";
+				power-down-seq-delays-us =
+					<1000
+					 1000
+					 1000
+					 0>;
+			};
+
+			/* Power sequence for REAR MAIN CAMERA combo */
+			rear_main_camera_power_seq: module_power_seq@2 {
+				/* Power supplies will be defined on each module. */
+				/* Sensor */
+				/* VDDIO         s2mpg15_ldo12 */
+				/* VDIG          ldo8 */
+				/* VDDA1         ldo1 */
+				/* VDDA2         ldo3 */
+				/* RESET         reset */
+				/* MCLK_ON       mclk_on */
+				/* Actuator , OIS */
+				/* AF_OIS_VANA   gpio2 */
+				/* AF_OIS_VM     ldo4 */
+				power-up-seqs =
+					"s2mpg15_ldo12",
+					"gpio2",
+					"ldo4",
+					"ldo1",
+					"ldo3",
+					"ldo8",
+					"mclk_on";
+				power-up-seq-types =
+					"regulator",
+					"regulator",
+					"regulator",
+					"regulator",
+					"regulator",
+					"regulator",
+					"pinctrl";
+				power-up-seq-delays-us =
+					<0
+					 0
+					 0
+					 0
+					 0
+					 1000
+					 0>;
+
+				/* Power down sequence */
+				power-down-seqs =
+					"mclk_off",
+					"ldo8",
+					"ldo3",
+					"ldo1",
+					"ldo4",
+					"gpio2",
+					"s2mpg15_ldo12";
+				power-down-seq-types =
+					"pinctrl",
+					"regulator",
+					"regulator",
+					"regulator",
+					"regulator",
+					"regulator",
+					"regulator";
+				power-down-seq-delays-us =
+					<1000
+					 0
+					 0
+					 0
+					 0
+					 0
+					 0>;
+			};
+
+			/* Power sequence for REAR ULTRA WIDE combo */
+			rear_uw_camera_power_seq: module_power_seq@3 {
+				/* Power supplies will be defined on each module. */
+				/* Sensor */
+				/* VDIG          ldo6 */
+				/* VANA          gpio1 */
+				/* VIO           s2mpg15_ldo12 */
+				/* RESET         reset */
+				/* MCLK_ON       mclk_on */
+				/* Actuator */
+				/* AF_VM         ldo5 */
+				power-up-seqs =
+					"ldo5",
+					"s2mpg15_ldo12",
+					"gpio1",
+					"ldo6",
+					"reset",
+					"mclk_on";
+				power-up-seq-types =
+					"regulator",
+					"regulator",
+					"regulator",
+					"regulator",
+					"gpio",
+					"pinctrl";
+				power-up-seq-delays-us =
+					<0
+					 1000
+					 0
+					 1000
+					 0
+					 5000>;
+
+				power-down-seqs =
+					"mclk_off",
+					"reset",
+					"ldo6",
+					"gpio1",
+					"s2mpg15_ldo12",
+					"ldo5";
+				power-down-seq-types =
+					"pinctrl",
+					"gpio",
+					"regulator",
+					"regulator",
+					"regulator",
+					"regulator";
+				power-down-seq-delays-us =
+					<0
+					 1000
+					 0
+					 1000
+					 0
+					 0>;
+			};
+
+			/* Power sequence for REAR Folded Tele Camera combo */
+			rear_tele_camera_power_seq: module_power_seq@4 {
+				/* Power supplies will be defined on each module. */
+				/* Sensor */
+				/* VDIG              ldo7 */
+				/* VDDA_EN           enable */
+				/* VDDIO             s2mpg15_ldo12 */
+				/* RESET             reset */
+				/* MCLK_ON           mclk_on */
+				/* AFOIS */
+				/* AF_VM             ldo2 */
+				/* AFOIS_VANA        gpio2 */
+				/* RTCAM_AFOIS_RESET shared-afois-reset */
+				power-up-seqs =
+					"s2mpg15_ldo12",
+					"gpio2",
+					"ldo2",
+					"shared-afois-reset",
+					"enable",
+					"ldo7",
+					"reset",
+					"mclk_on";
+				power-up-seq-types =
+					"regulator",
+					"regulator",
+					"regulator",
+					"gpio",
+					"gpio",
+					"regulator",
+					"gpio",
+					"pinctrl";
+				power-up-seq-delays-us =
+					<1000
+					 1000
+					 2500
+					 0
+					 0
+					 1000
+					 0
+					 2000>;
+
+				power-down-seqs =
+					"mclk_off",
+					"reset",
+					"ldo7",
+					"enable",
+					"shared-afois-reset",
+					"ldo2",
+					"gpio2",
+					"s2mpg15_ldo12";
+				power-down-seq-types =
+					"pinctrl",
+					"gpio",
+					"regulator",
+					"gpio",
+					"gpio",
+					"regulator",
+					"regulator",
+					"regulator";
+				power-down-seq-delays-us =
+					<0
+					 1000
+					 0
+					 0
+					 2500
+					 1000
+					 1000
+					 0>;
+
+			};
+
 			/* REAR CAMERA OKSOKO */
 			sensor0: sensor@0 {
 				compatible = "google,lwis-i2c-device";
@@ -320,6 +595,9 @@
 				/* I2C */
 				i2c-bus = <&hsi2c_5>;
 				i2c-addr = <0x1A>;
+
+				/* Power up mode */
+				lwis,power-up-to-suspend;
 
 				/* Registers */
 				reg-addr-bitwidth = <16>;
@@ -352,63 +630,19 @@
 				pinctrl-0 = <&sensor_mclk4_fn>;
 				pinctrl-1 = <&sensor_mclk4_out>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"s2mpg15_ldo12",
-					"gpio2",
-					"ldo4",
-					"ldo1",
-					"ldo3",
-					"ldo8",
-					"reset",
-					"mclk_on";
-				power-up-seq-types =
-					"regulator",
-					"regulator",
-					"regulator",
-					"regulator",
-					"regulator",
-					"regulator",
-					"gpio",
-					"pinctrl";
-				power-up-seq-delays-us =
-					<0
-					 0
-					 0
-					 0
-					 0
-					 1000
-					 0
-					 2000>;
+				/* Power sequence */
+				power-seq = <&rear_main_camera_power_seq>;
 
-				/* Power down sequence */
-				power-down-seqs =
-					"mclk_off",
-					"reset",
-					"ldo8",
-					"ldo3",
-					"ldo1",
-					"ldo4",
-					"gpio2",
-					"s2mpg15_ldo12";
-				power-down-seq-types =
-					"pinctrl",
-					"gpio",
-					"regulator",
-					"regulator",
-					"regulator",
-					"regulator",
-					"regulator",
-					"regulator";
-				power-down-seq-delays-us =
-					<0
-					 1000
-					 0
-					 0
-					 0
-					 0
-					 0
-					 0>;
+				/* resume sequence */
+				resume-seqs = "reset";
+				resume-seq-types = "gpio";
+				/* from XCLR to first i2c */
+				resume-seq-delays-us = <2000>;
+
+				/* suspend sequence */
+				suspend-seqs = "reset";
+				suspend-seq-types = "gpio";
+				suspend-seq-delays-us = <0>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -453,39 +687,8 @@
 				pinctrl-0 = <&sensor_mclk2_fn>;
 				pinctrl-1 = <&sensor_mclk2_out>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"s2mpg15_ldo12",
-					"gpio3",
-					"reset",
-					"mclk_on";
-				power-up-seq-types =
-					"regulator",
-					"regulator",
-					"gpio",
-					"pinctrl";
-				power-up-seq-delays-us =
-					<1000
-					 1500
-					 1000
-					 1000>;
-
-				/* Power down sequence */
-				power-down-seqs =
-					"mclk_off",
-					"reset",
-					"gpio3",
-					"s2mpg15_ldo12";
-				power-down-seq-types =
-					"pinctrl",
-					"gpio",
-					"regulator",
-					"regulator";
-				power-down-seq-delays-us =
-					<1000
-					 1000
-					 1000
-					 0>;
+				/* Power sequence */
+				power-seq = <&inner_front_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -532,51 +735,8 @@
 				pinctrl-0 = <&sensor_mclk1_fn>;
 				pinctrl-1 = <&sensor_mclk1_out>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"ldo5",
-					"s2mpg15_ldo12",
-					"gpio1",
-					"ldo6",
-					"reset",
-					"mclk_on";
-				power-up-seq-types =
-					"regulator",
-					"regulator",
-					"regulator",
-					"regulator",
-					"gpio",
-					"pinctrl";
-				power-up-seq-delays-us =
-					<0
-					 1000
-					 0
-					 1000
-					 0
-					 5000>;
-
-				/* Power down sequence */
-				power-down-seqs =
-					"mclk_off",
-					"reset",
-					"ldo6",
-					"gpio1",
-					"s2mpg15_ldo12",
-					"ldo5";
-				power-down-seq-types =
-					"pinctrl",
-					"gpio",
-					"regulator",
-					"regulator",
-					"regulator",
-					"regulator";
-				power-down-seq-delays-us =
-					<0
-					 1000
-					 0
-					 1000
-					 0
-					 0>;
+				/* Power sequence */
+				power-seq = <&rear_uw_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -621,39 +781,8 @@
 				pinctrl-0 = <&sensor_mclk8_fn>;
 				pinctrl-1 = <&sensor_mclk8_out>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"s2mpg15_ldo12",
-					"gpio4",
-					"reset",
-					"mclk_on";
-				power-up-seq-types =
-					"regulator",
-					"regulator",
-					"gpio",
-					"pinctrl";
-				power-up-seq-delays-us =
-					<1000
-					 1500
-					 1000
-					 1000>;
-
-				/* Power down sequence */
-				power-down-seqs =
-					"mclk_off",
-					"reset",
-					"gpio4",
-					"s2mpg15_ldo12";
-				power-down-seq-types =
-					"pinctrl",
-					"gpio",
-					"regulator",
-					"regulator";
-				power-down-seq-delays-us =
-					<1000
-					 1000
-					 1000
-					 0>;
+				/* Power sequence */
+				power-seq = <&outer_front_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -702,63 +831,8 @@
 				pinctrl-0 = <&sensor_mclk3_fn>;
 				pinctrl-1 = <&sensor_mclk3_out>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"s2mpg15_ldo12",
-					"gpio2",
-					"ldo2",
-					"shared-afois-reset",
-					"enable",
-					"ldo7",
-					"reset",
-					"mclk_on";
-				power-up-seq-types =
-					"regulator",
-					"regulator",
-					"regulator",
-					"gpio",
-					"gpio",
-					"regulator",
-					"gpio",
-					"pinctrl";
-				power-up-seq-delays-us =
-					<1000
-					 1000
-					 2500
-					 0
-					 0
-					 1000
-					 0
-					 2000>;
-
-				/* Power down sequence */
-				power-down-seqs =
-					"mclk_off",
-					"reset",
-					"ldo7",
-					"enable",
-					"shared-afois-reset",
-					"ldo2",
-					"gpio2",
-					"s2mpg15_ldo12";
-				power-down-seq-types =
-					"pinctrl",
-					"gpio",
-					"regulator",
-					"gpio",
-					"gpio",
-					"regulator",
-					"regulator",
-					"regulator";
-				power-down-seq-delays-us =
-					<0
-					 1000
-					 0
-					 0
-					 2500
-					 1000
-					 1000
-					 0>;
+				/* Power sequence */
+				power-seq = <&rear_tele_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -777,36 +851,26 @@
 				/* Registers */
 				reg-addr-bitwidth = <16>;
 				reg-value-bitwidth = <32>;
+
+				/* GPIOs */
+				/* RCAM_RST_L GPP10[2] */
+				reset-gpios = <&gpp10 2 GPIO_ACTIVE_HIGH>;
+
 				/* Power supplies */
 				s2mpg15_ldo12-supply = <&s_ldo12_reg>;
 				gpio2-supply = <&slg51002_gpio2>;
+				ldo1-supply = <&slg51002_ldo1>;
+				ldo8-supply = <&slg51002_ldo8>;
 				ldo4-supply = <&slg51002_ldo4>;
-				/* Power up sequence */
-				power-up-seqs =
-					"s2mpg15_ldo12",
-					"gpio2",
-					"ldo4";
-				power-up-seq-types =
-					"regulator",
-					"regulator",
-					"regulator";
-				power-up-seq-delays-us =
-					<0
-					 0
-					 0>;
-				/* Power down sequence */
-				power-down-seqs =
-					"ldo4",
-					"gpio2",
-					"s2mpg15_ldo12";
-				power-down-seq-types =
-					"regulator",
-					"regulator",
-					"regulator";
-				power-down-seq-delays-us =
-					<0
-					 0
-					 0>;
+				ldo3-supply = <&slg51002_ldo3>;
+
+				/* MCLK Control */
+				pinctrl-names = "mclk_on", "mclk_off";
+				pinctrl-0 = <&sensor_mclk4_fn>;
+				pinctrl-1 = <&sensor_mclk4_out>;
+
+				/* Power sequence */
+				power-seq = <&rear_main_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -829,24 +893,20 @@
 				reg-addr-bitwidth = <16>;
 				reg-value-bitwidth = <8>;
 
+				/* GPIOs */
+				reset-gpios = <&gpp6 2 GPIO_ACTIVE_HIGH>;
+
 				/* Power supplies */
 				s2mpg15_ldo12-supply = <&s_ldo12_reg>;
+				gpio3-supply = <&slg51002_gpio3>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"s2mpg15_ldo12";
-				power-up-seq-types =
-					"regulator";
-				power-up-seq-delays-us =
-					<1000>;
+				/* MCLK Control */
+				pinctrl-names = "mclk_on", "mclk_off";
+				pinctrl-0 = <&sensor_mclk2_fn>;
+				pinctrl-1 = <&sensor_mclk2_out>;
 
-				/* Power down sequence */
-				power-down-seqs =
-					"s2mpg15_ldo12";
-				power-down-seq-types =
-					"regulator";
-				power-down-seq-delays-us =
-					<0>;
+				/* Power sequence */
+				power-seq = <&inner_front_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -869,24 +929,22 @@
 				reg-addr-bitwidth = <16>;
 				reg-value-bitwidth = <8>;
 
+				/* GPIOs */
+				reset-gpios = <&gpp4 2 GPIO_ACTIVE_HIGH>;
+
 				/* Power supplies */
 				s2mpg15_ldo12-supply = <&s_ldo12_reg>;
+				gpio1-supply = <&slg51002_gpio1>;
+				ldo5-supply = <&slg51002_ldo5>;
+				ldo6-supply = <&slg51002_ldo6>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"s2mpg15_ldo12";
-				power-up-seq-types =
-					"regulator";
-				power-up-seq-delays-us =
-					<1000>;
+				/* MCLK Control */
+				pinctrl-names = "mclk_on", "mclk_off";
+				pinctrl-0 = <&sensor_mclk1_fn>;
+				pinctrl-1 = <&sensor_mclk1_out>;
 
-				/* Power down sequence */
-				power-down-seqs =
-					"s2mpg15_ldo12";
-				power-down-seq-types =
-					"regulator";
-				power-down-seq-delays-us =
-					<0>;
+				/* Power sequence */
+				power-seq = <&rear_uw_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -909,24 +967,20 @@
 				reg-addr-bitwidth = <16>;
 				reg-value-bitwidth = <8>;
 
+				/* GPIOs */
+				reset-gpios = <&gpp19 3 GPIO_ACTIVE_HIGH>;
+
 				/* Power supplies */
 				s2mpg15_ldo12-supply = <&s_ldo12_reg>;
+				gpio4-supply = <&slg51002_gpio4>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"s2mpg15_ldo12";
-				power-up-seq-types =
-					"regulator";
-				power-up-seq-delays-us =
-					<1000>;
+				/* MCLK Control */
+				pinctrl-names = "mclk_on", "mclk_off";
+				pinctrl-0 = <&sensor_mclk8_fn>;
+				pinctrl-1 = <&sensor_mclk8_out>;
 
-				/* Power down sequence */
-				power-down-seqs =
-					"s2mpg15_ldo12";
-				power-down-seq-types =
-					"regulator";
-				power-down-seq-delays-us =
-					<0>;
+				/* Power sequence */
+				power-seq = <&outer_front_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -950,46 +1004,23 @@
 				reg-value-bitwidth = <8>;
 
 				/* GPIOs */
+				reset-gpios = <&gpp2 2 GPIO_ACTIVE_HIGH>;
+				enable-gpios = <&s2mpg15_gpio 3 GPIO_ACTIVE_HIGH>;
 				shared-afois-reset-gpios = <&gpp24 2 GPIO_ACTIVE_HIGH>;
 
 				/* Power supplies */
 				s2mpg15_ldo12-supply = <&s_ldo12_reg>;
 				gpio2-supply = <&slg51002_gpio2>;
 				ldo2-supply = <&slg51002_ldo2>;
+				ldo7-supply = <&slg51002_ldo7>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"s2mpg15_ldo12",
-					"gpio2",
-					"ldo2",
-					"shared-afois-reset";
-				power-up-seq-types =
-					"regulator",
-					"regulator",
-					"regulator",
-					"gpio";
-				power-up-seq-delays-us =
-					<1000
-					 1000
-					 2500
-					 0>;
+				/* MCLK Control */
+				pinctrl-names = "mclk_on", "mclk_off";
+				pinctrl-0 = <&sensor_mclk3_fn>;
+				pinctrl-1 = <&sensor_mclk3_out>;
 
-				/* Power down sequence */
-				power-down-seqs =
-					"shared-afois-reset",
-					"ldo2",
-					"gpio2",
-					"s2mpg15_ldo12";
-				power-down-seq-types =
-					"gpio",
-					"regulator",
-					"regulator",
-					"regulator";
-				power-down-seq-delays-us =
-					<2500
-					 1000
-					 1000
-					 0>;
+				/* Power sequence */
+				power-seq = <&rear_tele_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -1012,38 +1043,25 @@
 				reg-addr-bitwidth = <16>;
 				reg-value-bitwidth = <32>;
 
+				/* GPIOs */
+				/* RCAM_RST_L GPP10[2] */
+				reset-gpios = <&gpp10 2 GPIO_ACTIVE_HIGH>;
+
 				/* Power supplies */
 				s2mpg15_ldo12-supply = <&s_ldo12_reg>;
 				gpio2-supply = <&slg51002_gpio2>;
+				ldo1-supply = <&slg51002_ldo1>;
+				ldo8-supply = <&slg51002_ldo8>;
 				ldo4-supply = <&slg51002_ldo4>;
+				ldo3-supply = <&slg51002_ldo3>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"s2mpg15_ldo12",
-					"gpio2",
-					"ldo4";
-				power-up-seq-types =
-					"regulator",
-					"regulator",
-					"regulator";
-				power-up-seq-delays-us =
-					<0
-					 0
-					 0>;
+				/* MCLK Control */
+				pinctrl-names = "mclk_on", "mclk_off";
+				pinctrl-0 = <&sensor_mclk4_fn>;
+				pinctrl-1 = <&sensor_mclk4_out>;
 
-				/* Power down sequence */
-				power-down-seqs =
-					"ldo4",
-					"gpio2",
-					"s2mpg15_ldo12";
-				power-down-seq-types =
-					"regulator",
-					"regulator",
-					"regulator";
-				power-down-seq-delays-us =
-					<0
-					 0
-					 0>;
+				/* Power sequence */
+				power-seq = <&rear_main_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -1066,31 +1084,22 @@
 				reg-addr-bitwidth = <8>;
 				reg-value-bitwidth = <8>;
 
+				/* GPIOs */
+				reset-gpios = <&gpp4 2 GPIO_ACTIVE_HIGH>;
+
 				/* Power supplies */
 				s2mpg15_ldo12-supply = <&s_ldo12_reg>;
+				gpio1-supply = <&slg51002_gpio1>;
 				ldo5-supply = <&slg51002_ldo5>;
+				ldo6-supply = <&slg51002_ldo6>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"ldo5",
-					"s2mpg15_ldo12";
-				power-up-seq-types =
-					"regulator",
-					"regulator";
-				power-up-seq-delays-us =
-					<0
-					 1000>;
+				/* MCLK Control */
+				pinctrl-names = "mclk_on", "mclk_off";
+				pinctrl-0 = <&sensor_mclk1_fn>;
+				pinctrl-1 = <&sensor_mclk1_out>;
 
-				/* Power down sequence */
-				power-down-seqs =
-					"s2mpg15_ldo12",
-					"ldo5";
-				power-down-seq-types =
-					"regulator",
-					"regulator";
-				power-down-seq-delays-us =
-					<0
-					 1000>;
+				/* Power sequence */
+				power-seq = <&rear_uw_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -1114,46 +1123,23 @@
 				reg-value-bitwidth = <8>;
 
 				/* GPIOs */
+				reset-gpios = <&gpp2 2 GPIO_ACTIVE_HIGH>;
+				enable-gpios = <&s2mpg15_gpio 3 GPIO_ACTIVE_HIGH>;
 				shared-afois-reset-gpios = <&gpp24 2 GPIO_ACTIVE_HIGH>;
 
 				/* Power supplies */
 				s2mpg15_ldo12-supply = <&s_ldo12_reg>;
 				gpio2-supply = <&slg51002_gpio2>;
 				ldo2-supply = <&slg51002_ldo2>;
+				ldo7-supply = <&slg51002_ldo7>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"s2mpg15_ldo12",
-					"gpio2",
-					"ldo2",
-					"shared-afois-reset";
-				power-up-seq-types =
-					"regulator",
-					"regulator",
-					"regulator",
-					"gpio";
-				power-up-seq-delays-us =
-					<1000
-					 1000
-					 2500
-					 0>;
+				/* MCLK Control */
+				pinctrl-names = "mclk_on", "mclk_off";
+				pinctrl-0 = <&sensor_mclk3_fn>;
+				pinctrl-1 = <&sensor_mclk3_out>;
 
-				/* Power down sequence */
-				power-down-seqs =
-					"shared-afois-reset",
-					"ldo2",
-					"gpio2",
-					"s2mpg15_ldo12";
-				power-down-seq-types =
-					"gpio",
-					"regulator",
-					"regulator",
-					"regulator";
-				power-down-seq-delays-us =
-					<2500
-					 1000
-					 1000
-					 0>;
+				/* Power sequence */
+				power-seq = <&rear_tele_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -1176,38 +1162,25 @@
 				reg-addr-bitwidth = <16>;
 				reg-value-bitwidth = <32>;
 
+				/* GPIOs */
+				/* RCAM_RST_L GPP10[2] */
+				reset-gpios = <&gpp10 2 GPIO_ACTIVE_HIGH>;
+
 				/* Power supplies */
 				s2mpg15_ldo12-supply = <&s_ldo12_reg>;
 				gpio2-supply = <&slg51002_gpio2>;
+				ldo1-supply = <&slg51002_ldo1>;
+				ldo8-supply = <&slg51002_ldo8>;
 				ldo4-supply = <&slg51002_ldo4>;
+				ldo3-supply = <&slg51002_ldo3>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"s2mpg15_ldo12",
-					"gpio2",
-					"ldo4";
-				power-up-seq-types =
-					"regulator",
-					"regulator",
-					"regulator";
-				power-up-seq-delays-us =
-					<0
-					 0
-					 0>;
+				/* MCLK Control */
+				pinctrl-names = "mclk_on", "mclk_off";
+				pinctrl-0 = <&sensor_mclk4_fn>;
+				pinctrl-1 = <&sensor_mclk4_out>;
 
-				/* Power down sequence */
-				power-down-seqs =
-					"ldo4",
-					"gpio2",
-					"s2mpg15_ldo12";
-				power-down-seq-types =
-					"regulator",
-					"regulator",
-					"regulator";
-				power-down-seq-delays-us =
-					<0
-					 0
-					 0>;
+				/* Power sequence */
+				power-seq = <&rear_main_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
@@ -1231,46 +1204,23 @@
 				reg-value-bitwidth = <8>;
 
 				/* GPIOs */
+				reset-gpios = <&gpp2 2 GPIO_ACTIVE_HIGH>;
+				enable-gpios = <&s2mpg15_gpio 3 GPIO_ACTIVE_HIGH>;
 				shared-afois-reset-gpios = <&gpp24 2 GPIO_ACTIVE_HIGH>;
 
 				/* Power supplies */
 				s2mpg15_ldo12-supply = <&s_ldo12_reg>;
 				gpio2-supply = <&slg51002_gpio2>;
 				ldo2-supply = <&slg51002_ldo2>;
+				ldo7-supply = <&slg51002_ldo7>;
 
-				/* Power up sequence */
-				power-up-seqs =
-					"s2mpg15_ldo12",
-					"gpio2",
-					"ldo2",
-					"shared-afois-reset";
-				power-up-seq-types =
-					"regulator",
-					"regulator",
-					"regulator",
-					"gpio";
-				power-up-seq-delays-us =
-					<1000
-					 1000
-					 2500
-					 0>;
+				/* MCLK Control */
+				pinctrl-names = "mclk_on", "mclk_off";
+				pinctrl-0 = <&sensor_mclk3_fn>;
+				pinctrl-1 = <&sensor_mclk3_out>;
 
-				/* Power down sequence */
-				power-down-seqs =
-					"shared-afois-reset",
-					"ldo2",
-					"gpio2",
-					"s2mpg15_ldo12";
-				power-down-seq-types =
-					"gpio",
-					"regulator",
-					"regulator",
-					"regulator";
-				power-down-seq-delays-us =
-					<2500
-					 1000
-					 1000
-					 0>;
+				/* Power sequence */
+				power-seq = <&rear_tele_camera_power_seq>;
 
 				/* Thread priority */
 				transaction-thread-priority = <99>;
