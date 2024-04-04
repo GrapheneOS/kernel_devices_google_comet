@@ -8,10 +8,10 @@
 
 max77779,config {
 
-	/* CT3-B_ATL_RC2_BC79_2mOhm_3521_2_090523_20231003.model.ini.txt, b/303320394#comment1 */
+	/* CT3-B_ATL_RC2_BC79_2mOhm_3521_2_090523_20240401.model.ini.txt, b/332397741#comment3 */
 	max77779,atl-1k {
 		max77779,batt-id-kohm = <1>;
-		max77779,model-version = <5>;
+		max77779,model-version = <6>;
 		max77779,force-reset-model-data;
 		max77779,fg-model = /bits/ 16 <
 			0xa500 0xb6f0 0xb990 0xbac0 0xbda0 0xbef0 0xc1d0 0xc410
@@ -21,8 +21,8 @@ max77779,config {
 		>;
 		max77779,fg-params = /bits/ 16 <
 			/* 0x00C0 */	0xc1b0	/* nNVCfg0 */
-			/* 0x00B6 */	0x043c	/* RelaxCFG */
-			/* 0x009F */	0x2606	/* nLearnCFG */
+			/* 0x00B6 */	0x043b	/* RelaxCFG */
+			/* 0x009F */	0x260e	/* nLearnCFG */
 			/* 0x000C */	0x4207	/* Config */
 			/* 0x00AB */	0x0080	/* Config2 */
 			/* 0x00BC */	0x5f00	/* nFullSOCthr */
@@ -38,17 +38,17 @@ max77779,config {
 			/* 0x00A6 */	0x0560	/* nRCOMP0 */
 			/* 0x00A7 */	0x1602	/* nTempCo */
 			/* 0x009C */	0x0097	/* nIChgTerm */
-			/* 0x00B2 */	0x3850	/* nMiscCFG */
+			/* 0x00B2 */	0x3870	/* nMiscCFG */
 			/* 0x009E */	0x0400	/* nModelCfg */
 			/* 0x00CA */	0xC8FF	/* nThermCfg */
-			/* 0x009D */	0xCEA4	/* nFilterCfg */
+			/* 0x009D */	0xCEB5	/* nFilterCfg */
 		>;
 	};
 
-	/* CT3-B_COS_RC2_BC79_2mOhm_3520_1_090523_20231003.model.ini.txt, b/303320394#comment1 */
+	/* CT3-B_COS_RC2_BC79_2mOhm_3520_1_090523_20240401.model.ini.txt, b/332397741#comment3 */
 	max77779,cos-2k {
 		max77779,batt-id-kohm = <2>;
-		max77779,model-version = <5>;
+		max77779,model-version = <6>;
 		max77779,force-reset-model-data;
 		max77779,fg-model = /bits/ 16 <
 			0xa500 0xb6d0 0xbac0 0xbc20 0xbd10 0xbee0 0xc0e0 0xc310
@@ -58,8 +58,8 @@ max77779,config {
 		>;
 		max77779,fg-params = /bits/ 16 <
 			/* 0x00C0 */	0xc1b0	/* nNVCfg0 */
-			/* 0x00B6 */	0x043c	/* RelaxCFG */
-			/* 0x009F */	0x2606	/* nLearnCFG */
+			/* 0x00B6 */	0x043b	/* RelaxCFG */
+			/* 0x009F */	0x260e	/* nLearnCFG */
 			/* 0x000C */	0x4207	/* Config */
 			/* 0x00AB */	0x0080	/* Config2 */
 			/* 0x00BC */	0x5f00	/* nFullSOCthr */
@@ -75,10 +75,10 @@ max77779,config {
 			/* 0x00A6 */	0x04d0	/* nRCOMP0 */
 			/* 0x00A7 */	0x1c02	/* nTempCo */
 			/* 0x009C */	0x0097	/* nIChgTerm */
-			/* 0x00B2 */	0x3850	/* nMiscCFG */
+			/* 0x00B2 */	0x3870	/* nMiscCFG */
 			/* 0x009E */	0x0400	/* nModelCfg */
 			/* 0x00CA */	0xC8FF	/* nThermCfg */
-			/* 0x009D */	0xCEA4	/* nFilterCfg */
+			/* 0x009D */	0xCEB5	/* nFilterCfg */
 		>;
 	};
 };
