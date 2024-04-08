@@ -48,6 +48,7 @@
 	goog,v4l2-enabled;
 	goog,offload-enabled;
 	goog,coord-filter-enabled;
+	goog,reset-after-selftest;
 
 	synaptics,pt05_high_name = "synaptics,pt05_high","synaptics,pt05_high_b",
 			"synaptics,pt05_high_c";
