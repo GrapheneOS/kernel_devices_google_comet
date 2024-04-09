@@ -828,10 +828,10 @@ const struct exynos_panel_desc google_ct3c = {
 	.num_binned_lp = ARRAY_SIZE(ct3c_binned_lp),
 	.panel_func = &ct3c_drm_funcs,
 	.exynos_panel_func = &ct3c_exynos_funcs,
-	.reset_timing_ms = {-1, 1, 1},
+	.reset_timing_ms = {-1, 1, 6},
 	.reg_ctrl_enable = {
 		{PANEL_REG_ID_VDDI, 0},
-		{PANEL_REG_ID_VCI, 10},
+		{PANEL_REG_ID_VCI, 2},
 	},
 	.reg_ctrl_post_enable = {
 		{PANEL_REG_ID_VDDD, 5},
