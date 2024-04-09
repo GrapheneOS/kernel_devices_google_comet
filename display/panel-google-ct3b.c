@@ -1593,8 +1593,8 @@ struct exynos_panel_desc google_ct3b = {
 	},
 	.reg_ctrl_disable = {
 		{PANEL_REG_ID_VDDR, 1},
+		{PANEL_REG_ID_VCI,  1},
 		{PANEL_REG_ID_VDDI, 1},
-		{PANEL_REG_ID_VCI, 0},
 	},
 };
 
