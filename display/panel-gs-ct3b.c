@@ -17,6 +17,7 @@
 
 #define CT3B_DDIC_ID_LEN 8
 #define CT3B_DIMMING_FRAME 32
+#define EDGE_COMPENSATION_SIZE 13
 
 #define PROJECT "CT3B"
 
@@ -63,6 +64,14 @@ struct ct3b_panel {
 	bool force_changeable_te2;
 	/** @dbv_range: indicates current dbv range  */
 	enum ct3b_dbv_range dbv_range;
+	/** @edge_compensation: compensation default value **/
+	struct edge_compensation {
+		bool is_support;
+		u8 left_default[EDGE_COMPENSATION_SIZE];
+		u8 right_default[EDGE_COMPENSATION_SIZE];
+		u8 top_default[EDGE_COMPENSATION_SIZE];
+		u8 bottom_default[EDGE_COMPENSATION_SIZE];
+	}edge_comp;
 };
 
 #define to_spanel(ctx) container_of(ctx, struct ct3b_panel, base)
@@ -240,6 +249,26 @@ static const struct gs_dsi_cmd ct3b_init_cmds[] = {
 	/* Crosstalk on */
 	GS_DSI_CMD(0xF0, 0x55, 0xAA, 0x52, 0x08, 0x08),
 	GS_DSI_CMD(0xBF, 0x11),
+	/* ECC */
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0xBD, 0x0F),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0x6D, 0x01),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0xBD, 0x00, 0x00, 0x3C),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0x6D, 0x04),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0xBD, 0x83, 0x48, 0x68),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0x6F, 0x07),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0xBD, 0x00, 0x08, 0x68),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0x6F, 0x0A),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0xBD, 0x00, 0x08, 0x68),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0x6F, 0x0D),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0xBD, 0x00),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0x6F, 0x0E),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0xBD, 0x00, 0x08, 0x1C),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0x6F, 0x11),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0xBD, 0x00, 0x08, 0x1C),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0x6F, 0x14),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0xBD, 0x00, 0x00, 0x3C),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0x6F, 0x17),
+	GS_DSI_REV_CMD(PANEL_REV_GE(PANEL_REV_EVT1_1), 0xBD, 0x7E, 0x08, 0x1C),
 
 	/* Demura */
 	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x04),
@@ -328,8 +357,15 @@ static void ct3b_update_irc(struct gs_panel *ctx, const enum gs_hbm_mode hbm_mod
 		GS_DCS_BUF_ADD_CMD(dev, 0x5F, 0x01);
 		GS_DCS_BUF_ADD_CMD(dev, 0x26, 0x02);
 		GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
-		GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x03);
-		GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0xC0, 0x32);
+		if (ctx->panel_rev < PANEL_REV_DVT1) {
+			GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x03);
+			GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0xC0, 0x32);
+		} else {
+			GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0xB0);
+			GS_DCS_BUF_ADD_CMD(dev, 0xBA, 0x22, 0x22, 0x32, 0x33);
+			GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x03);
+			GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0xC0, 0x23);
+		}
 	} else {
 		const u8 val1 = br >> 8;
 		const u8 val2 = br & 0xff;
@@ -341,8 +377,15 @@ static void ct3b_update_irc(struct gs_panel *ctx, const enum gs_hbm_mode hbm_mod
 		GS_DCS_BUF_ADD_CMD(dev, 0x5F, 0x00);
 		GS_DCS_BUF_ADD_CMD(dev, 0x26, 0x00);
 		GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
-		GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x03);
-		GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0xC0, 0x30);
+		if (ctx->panel_rev < PANEL_REV_DVT1) {
+			GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x03);
+			GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0xC0, 0x30);
+		} else {
+			GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0xB0);
+			GS_DCS_BUF_ADD_CMD(dev, 0xBA, 0x00, 0x00, 0x10, 0x11);
+			GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x03);
+			GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0xC0, 0x21);
+		}
 	}
 }
 
@@ -1182,7 +1225,62 @@ static void ct3b_commit_done(struct gs_panel *ctx)
 	ct3b_update_idle_state(ctx);
 }
 
-static void ct3b_set_gamma_setting(struct gs_panel *ctx)
+static void ct3b_update_ecc_setting(struct gs_panel *ctx)
+{
+	struct ct3b_panel *spanel = to_spanel(ctx);
+	struct device *dev = ctx->dev;
+	const u8 left_2nits[] = { 0xBD, 0xF9, 0xF0, 0xF9, 0xFB, 0xF9, 0xFC, 0xFE,
+							0xFD, 0xFF, 0xFF, 0xFF, 0xFF };
+	const u8 right_2nits[] = { 0xBD, 0xF2, 0xEA, 0xF5, 0xF8, 0xF5, 0xFB, 0xFD,
+							0xFC, 0xFE, 0xFF, 0xFF, 0xFF };
+	const u8 top_2nits[] = {0xBD, 0xF2, 0xE4, 0xED, 0xF7, 0xF3, 0xFA, 0xFE,
+							0xFE, 0xFE, 0xFF, 0xFF, 0xFF};
+	const u8 bottom_2nits[] = {0xBD, 0xF2, 0xE9, 0xEB, 0xF7, 0xF5, 0xFB, 0xFC,
+							0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+	const u8 *left = spanel->edge_comp.left_default;
+	const u8 *right = spanel->edge_comp.right_default;
+	const u8 *top = spanel->edge_comp.top_default;
+	const u8 *bottom = spanel->edge_comp.bottom_default;
+	u8 left_config[EDGE_COMPENSATION_SIZE] = { 0 };
+	u8 right_config[EDGE_COMPENSATION_SIZE] = { 0 };
+	u8 top_config[EDGE_COMPENSATION_SIZE] = { 0 };
+	u8 bottom_config[EDGE_COMPENSATION_SIZE] = { 0 };
+
+	switch (spanel->dbv_range) {
+	case DBV_RANGE1:
+		strncpy(left_config, left_2nits, sizeof(left_config));
+		strncpy(right_config, right_2nits, sizeof(right_config));
+		strncpy(top_config, top_2nits, sizeof(top_config));
+		strncpy(bottom_config, bottom_2nits, sizeof(bottom_config));
+		break;
+	case DBV_RANGE2:
+	case DBV_RANGE3:
+	case DBV_RANGE4:
+	case DBV_RANGE5:
+	case DBV_HBM:
+	case DBV_HBM2:
+		strncpy(left_config, left, sizeof(left_config));
+		strncpy(right_config, right, sizeof(right_config));
+		strncpy(top_config, top, sizeof(top_config));
+		strncpy(bottom_config, bottom, sizeof(bottom_config));
+		break;
+	default:
+		dev_warn(ctx->dev, "unknown dbv range: %u\n", spanel->dbv_range);
+		return;
+	}
+
+	GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x08);
+	GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x1A);
+	GS_DCS_BUF_ADD_CMDLIST(dev, left_config);
+	GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x26);
+	GS_DCS_BUF_ADD_CMDLIST(dev, right_config);
+	GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x32);
+	GS_DCS_BUF_ADD_CMDLIST(dev, top_config);
+	GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x3E);
+	GS_DCS_BUF_ADD_CMDLIST_AND_FLUSH(dev, bottom_config);
+}
+
+static void ct3b_update_gamma_setting(struct gs_panel *ctx)
 {
 	struct ct3b_panel *spanel = to_spanel(ctx);
 	struct device *dev = ctx->dev;
@@ -1215,7 +1313,7 @@ static void ct3b_set_gamma_setting(struct gs_panel *ctx)
 		config2 = 0x36;
 		break;
 	default:
-		dev_warn(ctx->dev, "unknown dbv range: %u\n", spanel->dbv_range);
+		dev_warn(dev, "unknown dbv range: %u\n", spanel->dbv_range);
 		return;
 	}
 
@@ -1230,7 +1328,8 @@ static void ct3b_set_gamma_setting(struct gs_panel *ctx)
 	GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0xEC, config2, config2, config2);
 }
 
-static bool is_dbv_range_changed(struct gs_panel *ctx, u16 br)
+static bool is_dbv_range_changed(struct gs_panel *ctx, u16 br,
+		bool *need_update_gamma, bool *need_update_ecc)
 {
 	struct ct3b_panel *spanel = to_spanel(ctx);
 	enum ct3b_dbv_range req_range;
@@ -1257,13 +1356,17 @@ static bool is_dbv_range_changed(struct gs_panel *ctx, u16 br)
 	if (spanel->dbv_range == req_range)
 		return false;
 
+	*need_update_gamma = true;
+	*need_update_ecc = !(spanel->dbv_range >= DBV_RANGE2 && req_range >= DBV_RANGE2);
 	spanel->dbv_range = req_range;
 	return true;
 }
 
 static int ct3b_set_brightness(struct gs_panel *ctx, u16 br)
 {
+	struct ct3b_panel *spanel = to_spanel(ctx);
 	struct device *dev = ctx->dev;
+	bool need_update_gamma = false, need_update_ecc = false;
 	u16 brightness;
 
 	if (ctx->current_mode->gs_mode.is_lp_mode) {
@@ -1285,8 +1388,13 @@ static int ct3b_set_brightness(struct gs_panel *ctx, u16 br)
 		GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x55, 0x00);
 	}
 
-	if (ctx->panel_rev >= PANEL_REV_EVT1_1 && is_dbv_range_changed(ctx, br))
-		ct3b_set_gamma_setting(ctx);
+	if (ctx->panel_rev >= PANEL_REV_EVT1_1 &&
+			is_dbv_range_changed(ctx, br, &need_update_gamma, &need_update_ecc)) {
+		if (need_update_gamma)
+			ct3b_update_gamma_setting(ctx);
+		if (spanel->edge_comp.is_support && need_update_ecc)
+			ct3b_update_ecc_setting(ctx);
+	}
 
 	brightness = swab16(br);
 
@@ -1360,9 +1468,77 @@ static void ct3b_get_panel_rev(struct gs_panel *ctx, u32 id)
 	dev_info(ctx->dev, "panel_rev: 0x%x\n", ctx->panel_rev);
 }
 
+static int ct3b_read_default_compensation(struct gs_panel *ctx)
+{
+	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
+	struct ct3b_panel *spanel = to_spanel(ctx);
+	struct device *dev = ctx->dev;
+	int ret;
+	u8 *left = spanel->edge_comp.left_default;
+	u8 *right = spanel->edge_comp.right_default;
+	u8 *top = spanel->edge_comp.top_default;
+	u8 *bottom = spanel->edge_comp.bottom_default;
+	u8 buf[EDGE_COMPENSATION_SIZE * 2] = {0};
+
+	GS_DCS_WRITE_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x08);
+	GS_DCS_WRITE_CMD(dev, 0x6F, 0x1A);
+	ret = mipi_dsi_dcs_read(dsi, 0xBD, left + 1, EDGE_COMPENSATION_SIZE - 1);
+	if (ret == (EDGE_COMPENSATION_SIZE - 1)) {
+		left[0] = 0xBD;
+		bin2hex(buf, left + 1, EDGE_COMPENSATION_SIZE - 1);
+
+		dev_info(ctx->dev, "%s: left: %s\n", __func__, buf);
+	} else {
+		dev_err(ctx->dev, "unable to raed left\n");
+		return -EINVAL;
+	}
+
+	GS_DCS_WRITE_CMD(dev, 0x6F, 0x26);
+	memset(buf, 0, sizeof(buf));
+	ret = mipi_dsi_dcs_read(dsi, 0xBD, right + 1, EDGE_COMPENSATION_SIZE - 1);
+	if (ret == (EDGE_COMPENSATION_SIZE - 1)) {
+		right[0] = 0xBD;
+		bin2hex(buf, right + 1, EDGE_COMPENSATION_SIZE - 1);
+
+		dev_info(ctx->dev, "%s: right: %s\n", __func__, buf);
+	} else {
+		dev_err(ctx->dev, "unable to raed right\n");
+		return -EINVAL;
+	}
+
+	GS_DCS_WRITE_CMD(dev, 0x6F, 0x32);
+	memset(buf, 0, sizeof(buf));
+	ret = mipi_dsi_dcs_read(dsi, 0xBD, top + 1, EDGE_COMPENSATION_SIZE - 1);
+	if (ret == (EDGE_COMPENSATION_SIZE - 1)) {
+		top[0] = 0xBD;
+		bin2hex(buf, top + 1, EDGE_COMPENSATION_SIZE - 1);
+
+		dev_info(ctx->dev, "%s: top: %s\n", __func__, buf);
+	} else {
+		dev_err(ctx->dev, "unable to raed top \n");
+		return -EINVAL;
+	}
+
+	GS_DCS_WRITE_CMD(dev, 0x6F, 0x3E);
+	memset(buf, 0, sizeof(buf));
+	ret = mipi_dsi_dcs_read(dsi, 0xBD, bottom + 1, EDGE_COMPENSATION_SIZE - 1);
+	if (ret == (EDGE_COMPENSATION_SIZE - 1)) {
+		bottom[0] = 0xBD;
+		bin2hex(buf, bottom + 1, EDGE_COMPENSATION_SIZE - 1);
+
+		dev_info(ctx->dev, "%s: bottom: %s\n", __func__, buf);
+	} else {
+		dev_err(ctx->dev, "unable to raed bottom\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static int ct3b_read_id(struct gs_panel *ctx)
 {
 	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
+	struct ct3b_panel *spanel = to_spanel(ctx);
 	struct device *dev = ctx->dev;
 	char buf[CT3B_DDIC_ID_LEN] = {0};
 	int ret;
@@ -1371,15 +1547,19 @@ static int ct3b_read_id(struct gs_panel *ctx)
 	ret = mipi_dsi_dcs_read(dsi, 0xF2, buf, CT3B_DDIC_ID_LEN);
 	if (ret != CT3B_DDIC_ID_LEN) {
 		dev_warn(ctx->dev, "Unable to read DDIC id (%d)\n", ret);
-		goto done;
-	} else {
-		ret = 0;
+		GS_DCS_WRITE_CMD(dev, 0xFF, 0xAA, 0x55, 0xA5, 0x00);
+		return ret;
 	}
+	GS_DCS_WRITE_CMD(dev, 0xFF, 0xAA, 0x55, 0xA5, 0x00);
 
 	bin2hex(ctx->panel_id, buf, CT3B_DDIC_ID_LEN);
-done:
-	GS_DCS_WRITE_CMD(dev, 0xFF, 0xAA, 0x55, 0xA5, 0x00);
-	return ret;
+
+	if (ctx->panel_rev < PANEL_REV_EVT1_1)
+		return 0;
+
+	spanel->edge_comp.is_support = !ct3b_read_default_compensation(ctx);
+
+	return 0;
 }
 
 static const struct gs_display_underrun_param underrun_param = {
