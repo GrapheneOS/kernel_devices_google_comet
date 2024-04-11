@@ -21,6 +21,28 @@
 #define PROJECT "CT3B"
 
 /**
+ * enum ct3b_dbv_range
+ * @DBV_INIT: initialize
+ * @DBV_RANGE1: 2nits to 24nits
+ * @DBV_RANGE2: 25nits
+ * @DBV_RANGE3: 26nits to 120nits
+ * @DBV_RANGE4: 121nits to 400nits
+ * @DBV_RANGE5: 401nits to 1000nits
+ * @DBV_HBM: hbm mode
+ * @DBV_HBM2: hbm2 mode
+ */
+enum ct3b_dbv_range {
+	DBV_INIT,
+	DBV_RANGE1,
+	DBV_RANGE2,
+	DBV_RANGE3,
+	DBV_RANGE4,
+	DBV_RANGE5,
+	DBV_HBM,
+	DBV_HBM2,
+};
+
+/**
  * struct ct3b_panel - panel specific runtime info
  *
  * This struct maintains ct3b panel specific runtime info, any fixed details about panel
@@ -39,6 +61,8 @@ struct ct3b_panel {
 	bool force_changeable_te;
 	/** @force_changeable_te2: force changeable TE2 for monitoring refresh rate */
 	bool force_changeable_te2;
+	/** @dbv_range: indicates current dbv range  */
+	enum ct3b_dbv_range dbv_range;
 };
 
 #define to_spanel(ctx) container_of(ctx, struct ct3b_panel, base)
@@ -216,6 +240,27 @@ static const struct gs_dsi_cmd ct3b_init_cmds[] = {
 	/* Crosstalk on */
 	GS_DSI_CMD(0xF0, 0x55, 0xAA, 0x52, 0x08, 0x08),
 	GS_DSI_CMD(0xBF, 0x11),
+
+	/* Demura */
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x04),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0x6F, 0x00),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0xD2, 0x2F),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0x6F, 0x06),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0xD2, 0x80),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0x6F, 0x0C),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0xD2, 0xC0),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0x6F, 0x1E),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0xD2, 0x2F),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0x6F, 0x24),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0xD2, 0x80),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0x6F, 0x2A),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0xD2, 0xC0),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0x6F, 0x3C),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0xD2, 0x2F),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0x6F, 0x42),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0xD2, 0x80),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0x6F, 0x48),
+	GS_DSI_REV_CMD(PANEL_REV_DVT1, 0xD2, 0xC0),
 
 	GS_DSI_CMD(0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00),
 	GS_DSI_CMD(0xBE, 0x5F, 0x4A, 0x49, 0x4F),
@@ -898,24 +943,6 @@ static int ct3b_set_op_hz(struct gs_panel *ctx, unsigned int hz)
 	return 0;
 }
 
-static int ct3b_set_brightness(struct gs_panel *ctx, u16 br)
-{
-	u16 brightness;
-
-	if (ctx->current_mode->gs_mode.is_lp_mode) {
-		const struct gs_panel_funcs *funcs;
-
-		funcs = ctx->desc->gs_panel_func;
-		if (funcs && funcs->set_binned_lp)
-			funcs->set_binned_lp(ctx, br);
-		return 0;
-	}
-
-	brightness = swab16(br);
-
-	return gs_dcs_set_brightness(ctx, brightness);
-}
-
 static void ct3b_dimming_frame_setting(struct gs_panel *ctx, u8 dimming_frame)
 {
 	struct device *dev = ctx->dev;
@@ -1033,6 +1060,7 @@ static int ct3b_atomic_check(struct gs_panel *ctx, struct drm_atomic_state *stat
 static int ct3b_disable(struct drm_panel *panel)
 {
 	struct gs_panel *ctx = container_of(panel, struct gs_panel, base);
+	struct ct3b_panel *spanel = to_spanel(ctx);
 	int ret;
 
 	dev_info(ctx->dev, "%s\n", __func__);
@@ -1052,6 +1080,7 @@ static int ct3b_disable(struct drm_panel *panel)
 	ctx->hw_status.vrefresh = 60;
 	ctx->hw_status.te_freq = 60;
 	ctx->hw_status.idle_vrefresh = 0;
+	spanel->dbv_range = DBV_INIT;
 
 	return 0;
 }
@@ -1111,6 +1140,110 @@ static void ct3b_commit_done(struct gs_panel *ctx)
 		return;
 
 	ct3b_update_idle_state(ctx);
+}
+
+static void ct3b_set_gamma_setting(struct gs_panel *ctx)
+{
+	struct ct3b_panel *spanel = to_spanel(ctx);
+	struct device *dev = ctx->dev;
+	u8 config1, config2;
+
+	switch (spanel->dbv_range) {
+	case DBV_RANGE1:
+		config1 = 0x40;
+		config2 = 0xFF;
+		break;
+	case DBV_RANGE2:
+		config1 = 0x2C;
+		config2 = 0xD4;
+		break;
+	case DBV_RANGE3:
+		config1 = 0x1C;
+		config2 = 0x85;
+		break;
+	case DBV_RANGE4:
+		config1 = 0x13;
+		config2 = 0x5C;
+		break;
+	case DBV_RANGE5:
+		config1 = 0x0D;
+		config2 = 0x40;
+		break;
+	case DBV_HBM:
+	case DBV_HBM2:
+		config1 = 0x0B;
+		config2 = 0x36;
+		break;
+	default:
+		dev_warn(ctx->dev, "unknown dbv range: %u\n", spanel->dbv_range);
+		return;
+	}
+
+	GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x04);
+	GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x02);
+	GS_DCS_BUF_ADD_CMD(dev, 0xEC, config1);
+	GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x03);
+	GS_DCS_BUF_ADD_CMD(dev, 0xEC, config2);
+	GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0xA5);
+	GS_DCS_BUF_ADD_CMD(dev, 0xEC, config1, config1, config1);
+	GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0xA8);
+	GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0xEC, config2, config2, config2);
+}
+
+static bool is_dbv_range_changed(struct gs_panel *ctx, u16 br)
+{
+	struct ct3b_panel *spanel = to_spanel(ctx);
+	enum ct3b_dbv_range req_range;
+
+	if (br >= 0x0001 && br < 0x027D) {
+		req_range = DBV_RANGE1;
+	} else if (br == 0x027D) {
+		req_range = DBV_RANGE2;
+	} else if (br >= 0x027E && br < 0x069D) {
+		req_range = DBV_RANGE3;
+	} else if (br >= 0x069D && br < 0x0AD7) {
+		req_range = DBV_RANGE4;
+	} else if (br >= 0x0AD7 && br < 0x0DA3) {
+		req_range = DBV_RANGE5;
+	} else if (br >= 0x0DA3 && br < 0x0F06) {
+		req_range = DBV_HBM;
+	} else if (br >= 0x0F06 && br <= 0x0FFF) {
+		req_range = DBV_HBM2;
+	} else {
+		dev_err(ctx->dev, "br:%d out of range\n", br);
+		return false;
+	}
+
+	if (spanel->dbv_range == req_range)
+		return false;
+
+	spanel->dbv_range = req_range;
+	return true;
+}
+
+static int ct3b_set_brightness(struct gs_panel *ctx, u16 br)
+{
+	u16 brightness;
+
+	if (ctx->current_mode->gs_mode.is_lp_mode) {
+		const struct gs_panel_funcs *funcs;
+
+		funcs = ctx->desc->gs_panel_func;
+		if (funcs && funcs->set_binned_lp)
+			funcs->set_binned_lp(ctx, br);
+		return 0;
+	}
+
+	if (GS_IS_HBM_ON_IRC_OFF(ctx->hbm_mode) &&
+		    br == ctx->desc->brightness_desc->brt_capability->hbm.level.max)
+		br = 0xfff;
+
+	if (ctx->panel_rev >= PANEL_REV_EVT1_1 && is_dbv_range_changed(ctx, br))
+		ct3b_set_gamma_setting(ctx);
+
+	brightness = swab16(br);
+
+	return gs_dcs_set_brightness(ctx, brightness);
 }
 
 static void ct3b_set_hbm_mode(struct gs_panel *ctx,
@@ -1482,6 +1615,7 @@ static int ct3b_panel_probe(struct mipi_dsi_device *dsi)
 	spanel->base.op_hz = 120;
 	ctx->hw_status.vrefresh = 60;
 	ctx->hw_status.te_freq = 60;
+	spanel->dbv_range = DBV_INIT;
 	clear_bit(FEAT_ZA, ctx->hw_status.feat);
 
 	ctx->thermal->tz = thermal_zone_device_register("inner_brightness",
