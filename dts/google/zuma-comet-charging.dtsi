@@ -29,6 +29,6 @@
 	maxim,irq-gpio = <&gpa6 5 GPIO_ACTIVE_LOW>;
 	maxim,status-charge-threshold-ma = <70>;
 	maxim,r_regval_1720x =  /bits/ 16 <
-		0x2A 0x0C3A     /* RelaxCfg Register */
+		0x2A 0x0C39     /* RelaxCfg Register */
 	>;
 };
