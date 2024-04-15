@@ -16,9 +16,7 @@
 
 #define VLIN_CMD_SIZE 3
 
-/**
- * one frame durtion(us) at 30Hz
- */
+/* one frame durtion(us) at 30Hz */
 #define DELAY_30HZ_ONE_FRAME 34000
 
 static const u8 vlin_7v7[] = { 0x46, 0x23, 0x06 };
@@ -309,7 +307,7 @@ static void ct3a_set_panel_feat(struct gs_panel *ctx,
 		if (bitmap_empty(changed_feat, FEAT_MAX) &&
 			vrefresh == ctx->hw_status.vrefresh &&
 			idle_vrefresh == ctx->hw_status.idle_vrefresh &&
-			te_freq == ctx->hw_status.te_freq) {
+			te_freq == ctx->hw_status.te.rate_hz) {
 			dev_dbg(ctx->dev, "%s: no changes, skip update\n", __func__);
 			return;
 		}
@@ -323,8 +321,9 @@ static void ct3a_set_panel_feat(struct gs_panel *ctx,
 
 	GS_DCS_BUF_ADD_CMDLIST(dev, unlock_cmd_f0);
 	/* TE setting */
+	ctx->sw_status.te.rate_hz = te_freq;
 	if (test_bit(FEAT_EARLY_EXIT, changed_feat) ||
-		test_bit(FEAT_OP_NS, changed_feat) || ctx->hw_status.te_freq != te_freq) {
+		test_bit(FEAT_OP_NS, changed_feat) || ctx->hw_status.te.rate_hz != te_freq) {
 		if (test_bit(FEAT_EARLY_EXIT, feat) && !spanel->force_changeable_te) {
 			if (is_vrr && te_freq == 240) {
 				/* 240Hz multi TE */
@@ -350,6 +349,7 @@ static void ct3a_set_panel_feat(struct gs_panel *ctx,
 					GS_DCS_BUF_ADD_CMD(dev, 0xB9, 0x01);
 				}
 			}
+			ctx->hw_status.te.option = TEX_OPT_FIXED;
 		} else {
 			/* Changeable TE */
 			if (ctx->panel_rev == PANEL_REV_PROTO1)
@@ -359,6 +359,7 @@ static void ct3a_set_panel_feat(struct gs_panel *ctx,
 				GS_DCS_BUF_ADD_CMD(dev, 0xB9, 0x04, 0x51, 0x00, 0x00);
 			else
 				GS_DCS_BUF_ADD_CMD(dev, 0xB9, 0x04);
+			ctx->hw_status.te.option = TEX_OPT_CHANGEABLE;
 		}
 	}
 
@@ -516,7 +517,7 @@ static void ct3a_set_panel_feat(struct gs_panel *ctx,
 
 	ctx->hw_status.vrefresh = vrefresh;
 	ctx->hw_status.idle_vrefresh = idle_vrefresh;
-	ctx->hw_status.te_freq = te_freq;
+	ctx->hw_status.te.rate_hz = te_freq;
 	bitmap_copy(ctx->hw_status.feat, feat, FEAT_MAX);
 }
 
@@ -580,6 +581,7 @@ static void ct3a_change_frequency(struct gs_panel *ctx,
 		idle_vrefresh = ct3a_get_min_idle_vrefresh(ctx, pmode);
 
 	ct3a_update_refresh_mode(ctx, pmode, idle_vrefresh);
+	ctx->sw_status.te.rate_hz = gs_drm_mode_te_freq(&pmode->mode);
 
 	dev_dbg(ctx->dev, "%s: change to %uHz\n", __func__, vrefresh);
 }
@@ -791,7 +793,8 @@ static void ct3a_set_lp_mode(struct gs_panel *ctx, const struct gs_panel_mode *p
 	GS_DCS_BUF_ADD_CMDLIST_AND_FLUSH(dev, lock_cmd_f0);
 
 	ctx->hw_status.vrefresh = 30;
-	ctx->hw_status.te_freq = 30;
+	ctx->sw_status.te.rate_hz = 30;
+	ctx->hw_status.te.rate_hz = 30;
 
 	PANEL_ATRACE_END(__func__);
 
@@ -993,7 +996,8 @@ static int ct3a_disable(struct drm_panel *panel)
 	/* panel register state gets reset after disabling hardware */
 	bitmap_clear(ctx->hw_status.feat, 0, FEAT_MAX);
 	ctx->hw_status.vrefresh = 60;
-	ctx->hw_status.te_freq = 60;
+	ctx->sw_status.te.rate_hz = 60;
+	ctx->hw_status.te.rate_hz = 60;
 	ctx->hw_status.idle_vrefresh = 0;
 
 	return 0;
@@ -1329,7 +1333,7 @@ static int ct3a_panel_probe(struct mipi_dsi_device *dsi)
 	spanel->base.op_hz = 120;
 	spanel->is_pixel_off = false;
 	ctx->hw_status.vrefresh = 60;
-	ctx->hw_status.te_freq = 60;
+	ctx->hw_status.te.rate_hz = 60;
 	clear_bit(FEAT_ZA, ctx->hw_status.feat);
 
 	ctx->thermal->tz = thermal_zone_device_register("inner_brightness",
