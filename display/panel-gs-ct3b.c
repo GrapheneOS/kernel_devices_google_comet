@@ -72,6 +72,9 @@ struct ct3b_panel {
 		u8 top_default[EDGE_COMPENSATION_SIZE];
 		u8 bottom_default[EDGE_COMPENSATION_SIZE];
 	}edge_comp;
+
+	/** @needs_display_on: if display_on command needs to send after flip done */
+	bool needs_display_on;
 };
 
 #define to_spanel(ctx) container_of(ctx, struct ct3b_panel, base)
@@ -1041,7 +1044,7 @@ static void ct3b_dimming_frame_setting(struct gs_panel *ctx, u8 dimming_frame)
 static int ct3b_enable(struct drm_panel *panel)
 {
 	struct gs_panel *ctx = container_of(panel, struct gs_panel, base);
-	struct device *dev = ctx->dev;
+	struct ct3b_panel *spanel = to_spanel(ctx);
 	const struct gs_panel_mode *pmode = ctx->current_mode;
 
 	if (!pmode) {
@@ -1063,7 +1066,7 @@ static int ct3b_enable(struct drm_panel *panel)
 	if (pmode->gs_mode.is_lp_mode)
 		ct3b_set_lp_mode(ctx, pmode);
 
-	GS_DCS_WRITE_CMD(dev, MIPI_DCS_SET_DISPLAY_ON);
+	spanel->needs_display_on = true;
 
 	PANEL_ATRACE_END(__func__);
 
@@ -1152,6 +1155,7 @@ static int ct3b_disable(struct drm_panel *panel)
 		return 0;
 	}
 
+	spanel->needs_display_on = false;
 	ret = gs_panel_disable(panel);
 	if (ret)
 		return ret;
@@ -1217,10 +1221,23 @@ static void ct3b_update_idle_state(struct gs_panel *ctx)
 
 static void ct3b_commit_done(struct gs_panel *ctx)
 {
+	struct ct3b_panel *spanel = to_spanel(ctx);
+
 	if (ctx->current_mode->gs_mode.is_lp_mode)
 		return;
 
 	ct3b_update_idle_state(ctx);
+
+	if (!gs_is_panel_active(ctx) || !spanel->needs_display_on)
+		return;
+
+	PANEL_ATRACE_BEGIN("ct3b_wait_flip_done");
+	gs_panel_wait_for_flip_done(ctx, 100);
+	PANEL_ATRACE_END("ct3b_wait_flip_done");
+
+	GS_DCS_WRITE_CMD(ctx->dev, MIPI_DCS_SET_DISPLAY_ON);
+	spanel->needs_display_on = false;
+	dev_info(ctx->dev, "%s: DISPLAY_ON\n", __func__);
 }
 
 static void ct3b_update_ecc_setting(struct gs_panel *ctx)
