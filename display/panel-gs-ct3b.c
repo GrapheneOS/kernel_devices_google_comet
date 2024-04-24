@@ -913,11 +913,10 @@ static void ct3b_set_lp_mode(struct gs_panel *ctx, const struct gs_panel_mode *p
 
 	/* enter AOD */
 	GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x00);
+	GS_DCS_BUF_ADD_CMD(dev, 0xFF, 0xAA, 0x55, 0xA5, 0x81);
+	GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x0E);
+	GS_DCS_BUF_ADD_CMD(dev, 0xF5, 0x20);
 	if (ctx->panel_rev >= PANEL_REV_EVT1_1) {
-		GS_DCS_BUF_ADD_CMD(dev, 0xFF, 0xAA, 0x55, 0xA5, 0x81);
-		GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x0E);
-		GS_DCS_BUF_ADD_CMD(dev, 0xF5, 0x20);
-
 		GS_DCS_BUF_ADD_CMD(dev, MIPI_DCS_ENTER_IDLE_MODE);
 
 		/* skip 1Hz */
@@ -960,11 +959,10 @@ static void ct3b_set_nolp_mode(struct gs_panel *ctx,
 
 	/* exit AOD */
 	GS_DCS_BUF_ADD_CMD(dev, MIPI_DCS_EXIT_IDLE_MODE);
+	GS_DCS_BUF_ADD_CMD(dev, 0xFF, 0xAA, 0x55, 0xA5, 0x81);
+	GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x0E);
+	GS_DCS_BUF_ADD_CMD(dev, 0xF5, 0x2B);
 	if (ctx->panel_rev >= PANEL_REV_EVT1_1) {
-		GS_DCS_BUF_ADD_CMD(dev, 0xFF, 0xAA, 0x55, 0xA5, 0x81);
-		GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x0E);
-		GS_DCS_BUF_ADD_CMD(dev, 0xF5, 0x2B);
-
 		GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
 		GS_DCS_BUF_ADD_CMD(dev, 0xBE, 0x5F, 0x4A, 0x49, 0x4F);
 	}
