@@ -657,10 +657,11 @@ static void ct3b_set_panel_feat(struct gs_panel *ctx, const struct gs_panel_mode
 			clear_bit(FEAT_OP_NS, feat);
 	}
 	if (ctx->panel_rev >= PANEL_REV_DVT1 || !test_bit(FEAT_OP_NS, feat)) {
-		vrefresh = 1;
-		idle_vrefresh = 0;
+		if (!test_bit(FEAT_FRAME_AUTO, feat)) {
+			vrefresh = idle_vrefresh ?: 1;
+			idle_vrefresh = 0;
+		}
 		set_bit(FEAT_EARLY_EXIT, feat);
-		clear_bit(FEAT_FRAME_AUTO, feat);
 	} else {
 		clear_bit(FEAT_EARLY_EXIT, feat);
 	}
@@ -678,11 +679,10 @@ static void ct3b_set_panel_feat(struct gs_panel *ctx, const struct gs_panel_mode
 		}
 	}
 
-	dev_dbg(dev,
-		"op=%d ee=%d fi=%d fps=%u idle_fps=%u te=%u vrr=%d\n",
+	dev_dbg(dev, "op=%u ee=%u vrr=%u fi=%u@a,%u@m rr=%u-%u:%u\n",
 		test_bit(FEAT_OP_NS, feat),test_bit(FEAT_EARLY_EXIT, feat),
-		test_bit(FEAT_FRAME_AUTO, feat),
-		vrefresh, idle_vrefresh, te_freq, is_vrr);
+		is_vrr, test_bit(FEAT_FRAME_MANUAL_FI, feat), test_bit(FEAT_FRAME_AUTO, feat),
+		idle_vrefresh ?: vrefresh, drm_mode_vrefresh(&pmode->mode), te_freq);
 
 #ifndef PANEL_FACTORY_BUILD
 	/* TE setting */
@@ -803,6 +803,9 @@ static void ct3b_change_frequency(struct gs_panel *ctx, const struct gs_panel_mo
 
 	if (pmode->idle_mode == GIDLE_MODE_ON_INACTIVITY)
 		idle_vrefresh = ct3b_get_min_idle_vrefresh(ctx, pmode);
+
+	if (test_bit(FEAT_FRAME_AUTO, ctx->sw_status.feat))
+		idle_vrefresh = ctx->sw_status.idle_vrefresh;
 
 	ct3b_update_refresh_mode(ctx, pmode, idle_vrefresh);
 	ctx->sw_status.te.rate_hz = gs_drm_mode_te_freq(&pmode->mode);
@@ -929,6 +932,73 @@ static void ct3b_set_dimming_on(struct gs_panel *ctx,
 	dev_dbg(dev, "%s dimming_on=%d\n", __func__, dimming_on);
 }
 
+#ifndef PANEL_FACTORY_BUILD
+static void ct3b_update_refresh_ctrl_feat(struct gs_panel *ctx, const struct gs_panel_mode *pmode)
+{
+	const u32 ctrl = ctx->refresh_ctrl;
+	unsigned long *feat = ctx->sw_status.feat;
+	u32 min_vrefresh = ctx->sw_status.idle_vrefresh;
+	u32 vrefresh;
+	bool lp_mode;
+
+	if (!pmode)
+		return;
+
+	vrefresh = drm_mode_vrefresh(&pmode->mode);
+	lp_mode =  pmode->gs_mode.is_lp_mode;
+
+	if (ctrl & GS_PANEL_REFRESH_CTRL_MIN_REFRESH_RATE_MASK) {
+		min_vrefresh = (ctrl & GS_PANEL_REFRESH_CTRL_MIN_REFRESH_RATE_MASK) >>
+				GS_PANEL_REFRESH_CTRL_MIN_REFRESH_RATE_OFFSET;
+
+		if (min_vrefresh > vrefresh) {
+			dev_warn(ctx->dev, "%s: min RR %uHz requested, but valid range is 1-%uHz\n",
+				 __func__, min_vrefresh, vrefresh);
+			min_vrefresh = vrefresh;
+		}
+		if (ctx->sw_status.idle_vrefresh != min_vrefresh) {
+			if (!lp_mode) {
+				ctx->sw_status.idle_vrefresh = min_vrefresh;
+			} else {
+				dev_warn(ctx->dev, "%s: setting minRR during AOD not supported\n",
+				 __func__);
+			}
+		}
+	}
+
+	if ((ctrl & GS_PANEL_REFRESH_CTRL_FI_AUTO) && (min_vrefresh <= 1)) {
+		set_bit(FEAT_FRAME_MANUAL_FI, feat);
+	} else {
+		clear_bit(FEAT_FRAME_MANUAL_FI, feat);
+	}
+
+	if (lp_mode) {
+		dev_warn(ctx->dev, "%s: new refresh_ctrl settings will apply during AOD exit\n",
+			 __func__);
+		return;
+	}
+
+	ct3b_set_panel_feat(ctx, pmode, false);
+}
+
+static void ct3b_refresh_ctrl(struct gs_panel *ctx)
+{
+	const u32 ctrl = ctx->refresh_ctrl;
+	struct device *dev = ctx->dev;
+
+	PANEL_ATRACE_BEGIN(__func__);
+
+	ct3b_update_refresh_ctrl_feat(ctx, ctx->current_mode);
+
+	if (ctrl & GS_PANEL_REFRESH_CTRL_FI_FRAME_COUNT_MASK) {
+		dev_dbg(dev, "%s: manually inserting frame\n", __func__);
+		GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x2C, 0x00);
+	}
+
+	PANEL_ATRACE_END(__func__);
+}
+#endif
+
 static void ct3b_set_lp_mode(struct gs_panel *ctx, const struct gs_panel_mode *pmode)
 {
 	struct device *dev = ctx->dev;
@@ -1003,6 +1073,7 @@ static void ct3b_set_nolp_mode(struct gs_panel *ctx,
 	GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, MIPI_DCS_WRITE_CONTROL_DISPLAY,
 					ctx->dimming_on ? 0x28 : 0x20);
 
+	ct3b_update_refresh_ctrl_feat(ctx, pmode);
 	ct3b_set_panel_feat(ctx, pmode, true);
 	ct3b_change_frequency(ctx, pmode);
 
@@ -1101,29 +1172,6 @@ static int ct3b_enable(struct drm_panel *panel)
 	PANEL_ATRACE_END(__func__);
 
 	return 0;
-}
-
-static void ct3b_refresh_ctrl(struct gs_panel *ctx)
-{
-	const u32 ctrl = ctx->refresh_ctrl;
-	struct device *dev = ctx->dev;
-
-	PANEL_ATRACE_BEGIN(__func__);
-
-	if (ctrl & GS_PANEL_REFRESH_CTRL_FI_AUTO) {
-		set_bit(FEAT_FRAME_MANUAL_FI, ctx->sw_status.feat);
-		ct3b_update_panel_feat(ctx, false);
-	} else {
-		clear_bit(FEAT_FRAME_MANUAL_FI, ctx->sw_status.feat);
-		ct3b_update_panel_feat(ctx, false);
-
-		if (ctrl & GS_PANEL_REFRESH_CTRL_FI_FRAME_COUNT_MASK) {
-			dev_dbg(dev, "%s: manually inserting frame\n", __func__);
-			GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x2C, 0x00);
-		}
-	}
-
-	PANEL_ATRACE_END(__func__);
 }
 
 static int ct3b_atomic_check(struct gs_panel *ctx, struct drm_atomic_state *state)
@@ -2016,7 +2064,9 @@ static const struct gs_panel_funcs ct3b_gs_funcs = {
 	.commit_done = ct3b_commit_done,
 	.set_self_refresh = ct3b_set_self_refresh,
 	.set_dimming = ct3b_set_dimming_on,
+#ifndef PANEL_FACTORY_BUILD
 	.refresh_ctrl = ct3b_refresh_ctrl,
+#endif
 	.set_op_hz = ct3b_set_op_hz,
 	.is_mode_seamless = ct3b_is_mode_seamless,
 	.mode_set = ct3b_mode_set,
