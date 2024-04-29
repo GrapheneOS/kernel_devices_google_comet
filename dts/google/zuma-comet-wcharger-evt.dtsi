@@ -43,14 +43,6 @@
 		input-enable;
 		bias-pull-up;
 	};
-
-	/* QI_BPP_EPP_GPP_SLCT */
-	wc_slct: wc_slct {
-		pins = "gpio5";
-		function = "gpio";
-		bias-disable;
-		output-high;
-	};
 };
 
 &hsi2c_10 {
@@ -62,7 +54,7 @@
 
 &p9222 {
 	status = "okay";
-	pinctrl-0 = <&wc_irq &wc_en &det_int &wc_slct>;
+	pinctrl-0 = <&wc_irq &wc_en &det_int>;
 
 	idt,gpio_wlc_en = <&max77779_sgpio 1 GPIO_ACTIVE_LOW>; /* QI_EN_L */
 	idt,gpio_qien = <&max77779_sgpio 1 GPIO_ACTIVE_LOW>; /* QI_EN_L */
