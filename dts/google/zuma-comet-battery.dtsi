@@ -23,6 +23,10 @@
 				google,ttf-elap-table = <37 64 92 142 247 90>;
 				google,ttf-tier-table = <0 68 81>;
 			};
+
+			google_dual_batt_gauge: google,dual_batt_gauge {
+				google,vbatt-ov-allowed-idx = <3>;
+			};
 		};
 	};
 };
