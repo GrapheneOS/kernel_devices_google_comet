@@ -25,6 +25,7 @@
 #include "zuma-comet-gnss-samsung.dtsi"
 #include "zuma-comet-wcharger-evt.dtsi"
 #include "google-dts-base/max777xx-fwupdate.dtsi"
+#include "zumapro-comet-evt1_1-battery.dtsi"
 
 / {
 	board_id = <0x60604>;
