@@ -1996,6 +1996,8 @@ static int ct3b_panel_probe(struct mipi_dsi_device *dsi)
 	spanel->base.op_hz = 120;
 	ctx->hw_status.vrefresh = 60;
 	ctx->hw_status.te.rate_hz = 60;
+	/* always use fixed TE */
+	ctx->hw_status.te.option = TEX_OPT_FIXED;
 	spanel->dbv_range = DBV_INIT;
 	clear_bit(FEAT_ZA, ctx->hw_status.feat);
 
