@@ -670,7 +670,7 @@ static void ct3b_set_panel_feat(struct gs_panel *ctx,
 		bitmap_xor(changed_feat, feat, ctx->hw_status.feat, FEAT_MAX);
 		if (bitmap_empty(changed_feat, FEAT_MAX) && vrefresh == ctx->hw_status.vrefresh &&
 			idle_vrefresh == ctx->hw_status.idle_vrefresh &&
-			te_freq == ctx->hw_status.te_freq) {
+			te_freq == ctx->hw_status.te.rate_hz) {
 			dev_dbg(dev, "%s: no changes, skip update\n", __func__);
 			return;
 		}
@@ -684,6 +684,7 @@ static void ct3b_set_panel_feat(struct gs_panel *ctx,
 
 #ifndef PANEL_FACTORY_BUILD
 	/* TE setting */
+	ctx->sw_status.te.rate_hz = te_freq;
 	if (ctx->panel_rev >= PANEL_REV_DVT1 || !test_bit(FEAT_OP_NS, feat)) {
 		GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
 		GS_DCS_BUF_ADD_CMD(dev, 0xBE, 0x47, 0x4A, 0x49, 0x4F);
@@ -740,7 +741,7 @@ static void ct3b_set_panel_feat(struct gs_panel *ctx,
 
 	ctx->hw_status.vrefresh = vrefresh;
 	ctx->hw_status.idle_vrefresh = idle_vrefresh;
-	ctx->hw_status.te_freq = te_freq;
+	ctx->hw_status.te.rate_hz = te_freq;
 	bitmap_copy(ctx->hw_status.feat, feat, FEAT_MAX);
 }
 
@@ -802,6 +803,7 @@ static void ct3b_change_frequency(struct gs_panel *ctx, const struct gs_panel_mo
 		idle_vrefresh = ct3b_get_min_idle_vrefresh(ctx, pmode);
 
 	ct3b_update_refresh_mode(ctx, pmode, idle_vrefresh);
+	ctx->sw_status.te.rate_hz = gs_drm_mode_te_freq(&pmode->mode);
 
 	dev_dbg(ctx->dev, "%s: change to %uHz\n", __func__, vrefresh);
 }
@@ -961,7 +963,7 @@ static void ct3b_set_lp_mode(struct gs_panel *ctx, const struct gs_panel_mode *p
 	}
 
 	ctx->hw_status.vrefresh = 30;
-	ctx->hw_status.te_freq = 30;
+	ctx->hw_status.te.rate_hz = 30;
 
 	PANEL_ATRACE_END(__func__);
 
@@ -1190,7 +1192,7 @@ static int ct3b_disable(struct drm_panel *panel)
 	/* panel register state gets reset after disabling hardware */
 	bitmap_clear(ctx->hw_status.feat, 0, FEAT_MAX);
 	ctx->hw_status.vrefresh = 60;
-	ctx->hw_status.te_freq = 60;
+	ctx->hw_status.te.rate_hz = 60;
 	ctx->hw_status.idle_vrefresh = 0;
 	spanel->dbv_range = DBV_INIT;
 
@@ -1883,7 +1885,7 @@ static int ct3b_panel_probe(struct mipi_dsi_device *dsi)
 
 	spanel->base.op_hz = 120;
 	ctx->hw_status.vrefresh = 60;
-	ctx->hw_status.te_freq = 60;
+	ctx->hw_status.te.rate_hz = 60;
 	spanel->dbv_range = DBV_INIT;
 	clear_bit(FEAT_ZA, ctx->hw_status.feat);
 
