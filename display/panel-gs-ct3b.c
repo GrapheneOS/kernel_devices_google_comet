@@ -9,11 +9,12 @@
 #include <linux/thermal.h>
 #include <video/mipi_display.h>
 
-#include "trace/panel_trace.h"
-
 #include "gs_panel/drm_panel_funcs_defaults.h"
 #include "gs_panel/gs_panel.h"
 #include "gs_panel/gs_panel_funcs_defaults.h"
+
+#include "trace/dpu_trace.h"
+#include "trace/panel_trace.h"
 
 #define CT3B_DDIC_ID_LEN 8
 #define CT3B_DIMMING_FRAME 32
@@ -835,7 +836,7 @@ static void ct3b_wait_one_vblank(struct gs_panel *ctx)
 	if (ctx->gs_connector->base.state)
 		crtc = ctx->gs_connector->base.state->crtc;
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 	if (crtc) {
 		int ret = drm_crtc_vblank_get(crtc);
 
@@ -848,7 +849,7 @@ static void ct3b_wait_one_vblank(struct gs_panel *ctx)
 	} else {
 		usleep_range(8350, 8500);
 	}
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 }
 
 static bool ct3b_set_self_refresh(struct gs_panel *ctx, bool enable)
@@ -890,7 +891,7 @@ static bool ct3b_set_self_refresh(struct gs_panel *ctx, bool enable)
 	if (ctx->idle_data.panel_idle_vrefresh == idle_vrefresh)
 		return false;
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 	ct3b_update_refresh_mode(ctx, pmode, idle_vrefresh);
 
 	if (idle_vrefresh) {
@@ -908,7 +909,7 @@ static bool ct3b_set_self_refresh(struct gs_panel *ctx, bool enable)
 		ct3b_wait_one_vblank(ctx);
 	}
 
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 
 	return true;
 }
@@ -985,7 +986,7 @@ static void ct3b_refresh_ctrl(struct gs_panel *ctx)
 	const u32 ctrl = ctx->refresh_ctrl;
 	struct device *dev = ctx->dev;
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 
 	ct3b_update_refresh_ctrl_feat(ctx, ctx->current_mode);
 
@@ -994,7 +995,7 @@ static void ct3b_refresh_ctrl(struct gs_panel *ctx)
 		GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x2C, 0x00);
 	}
 
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 }
 #endif
 
@@ -1004,7 +1005,7 @@ static void ct3b_set_lp_mode(struct gs_panel *ctx, const struct gs_panel_mode *p
 
 	dev_dbg(ctx->dev, "%s\n", __func__);
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 
 	/* Enable early exit and fixed TE */
 	if (ctx->panel_rev >= PANEL_REV_EVT1_1) {
@@ -1037,7 +1038,7 @@ static void ct3b_set_lp_mode(struct gs_panel *ctx, const struct gs_panel_mode *p
 	ctx->sw_status.te.rate_hz = 30;
 	ctx->sw_status.te.option = TEX_OPT_FIXED;
 
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 
 	dev_info(ctx->dev, "enter %dhz LP mode\n", drm_mode_vrefresh(&pmode->mode));
 }
@@ -1050,7 +1051,7 @@ static void ct3b_set_nolp_mode(struct gs_panel *ctx,
 	if (!gs_is_panel_active(ctx))
 		return;
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 
 	/* Disable early exit */
 	if (ctx->panel_rev >= PANEL_REV_EVT1_1) {
@@ -1076,7 +1077,7 @@ static void ct3b_set_nolp_mode(struct gs_panel *ctx,
 	ct3b_set_panel_feat(ctx, pmode, true);
 	ct3b_change_frequency(ctx, pmode);
 
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 
 	dev_info(dev, "exit LP mode\n");
 }
@@ -1096,7 +1097,7 @@ static int ct3b_set_op_hz(struct gs_panel *ctx, unsigned int hz)
 		return -EINVAL;
 	}
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 
 	ctx->op_hz = hz;
 	if (hz == 60)
@@ -1122,7 +1123,7 @@ static int ct3b_set_op_hz(struct gs_panel *ctx, unsigned int hz)
 		ct3b_wait_one_vblank(ctx);
 	}
 
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 
 	return 0;
 }
@@ -1154,7 +1155,7 @@ static int ct3b_enable(struct drm_panel *panel)
 
 	dev_info(ctx->dev, "%s\n", __func__);
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 
 	gs_panel_reset_helper(ctx);
 	gs_panel_send_cmdset(ctx, &ct3b_init_cmdset);
@@ -1168,7 +1169,7 @@ static int ct3b_enable(struct drm_panel *panel)
 
 	spanel->needs_display_on = true;
 
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 
 	return 0;
 }
@@ -1282,7 +1283,7 @@ static void ct3b_update_idle_state(struct gs_panel *ctx)
 	/* triggering early exit causes a switch to 120hz */
 	ctx->timestamps.last_mode_set_ts = ktime_get();
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 
 	if (!ctx->idle_data.idle_delay_ms && spanel->force_changeable_te) {
 		dev_dbg(ctx->dev, "sending early exit out cmd\n");
@@ -1292,7 +1293,7 @@ static void ct3b_update_idle_state(struct gs_panel *ctx)
 		ct3b_update_refresh_mode(ctx, ctx->current_mode, 0);
 	}
 
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 }
 
 static void ct3b_commit_done(struct gs_panel *ctx)
@@ -1307,9 +1308,9 @@ static void ct3b_commit_done(struct gs_panel *ctx)
 	if (!gs_is_panel_active(ctx) || !spanel->needs_display_on)
 		return;
 
-	PANEL_ATRACE_BEGIN("ct3b_wait_flip_done");
+	DPU_ATRACE_BEGIN("ct3b_wait_flip_done");
 	gs_panel_wait_for_flip_done(ctx, 100);
-	PANEL_ATRACE_END("ct3b_wait_flip_done");
+	DPU_ATRACE_END("ct3b_wait_flip_done");
 
 	GS_DCS_WRITE_CMD(ctx->dev, MIPI_DCS_SET_DISPLAY_ON);
 	spanel->needs_display_on = false;

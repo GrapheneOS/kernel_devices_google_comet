@@ -8,11 +8,12 @@
 #include <linux/thermal.h>
 #include <video/mipi_display.h>
 
-#include "trace/panel_trace.h"
-
 #include "gs_panel/drm_panel_funcs_defaults.h"
 #include "gs_panel/gs_panel.h"
 #include "gs_panel/gs_panel_funcs_defaults.h"
+
+#include "trace/dpu_trace.h"
+#include "trace/panel_trace.h"
 
 #define VLIN_CMD_SIZE 3
 
@@ -609,7 +610,7 @@ static void ct3a_wait_one_vblank(struct gs_panel *ctx)
 	if (ctx->gs_connector->base.state)
 		crtc = ctx->gs_connector->base.state->crtc;
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 	if (crtc) {
 		int ret = drm_crtc_vblank_get(crtc);
 
@@ -622,7 +623,7 @@ static void ct3a_wait_one_vblank(struct gs_panel *ctx)
 	} else {
 		usleep_range(8350, 8500);
 	}
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 }
 
 static bool ct3a_set_self_refresh(struct gs_panel *ctx, bool enable)
@@ -666,7 +667,7 @@ static bool ct3a_set_self_refresh(struct gs_panel *ctx, bool enable)
 	if (ctx->idle_data.panel_idle_vrefresh == idle_vrefresh)
 		return false;
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 	ct3a_update_refresh_mode(ctx, pmode, idle_vrefresh);
 
 	if (idle_vrefresh) {
@@ -684,7 +685,7 @@ static bool ct3a_set_self_refresh(struct gs_panel *ctx, bool enable)
 		ct3a_wait_one_vblank(ctx);
 	}
 
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 
 	return true;
 }
@@ -751,7 +752,7 @@ static void ct3a_set_lp_mode(struct gs_panel *ctx, const struct gs_panel_mode *p
 
 	dev_dbg(ctx->dev, "%s\n", __func__);
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 
 	GS_DCS_BUF_ADD_CMDLIST(dev, unlock_cmd_f0);
 
@@ -796,7 +797,7 @@ static void ct3a_set_lp_mode(struct gs_panel *ctx, const struct gs_panel_mode *p
 	ctx->sw_status.te.rate_hz = 30;
 	ctx->hw_status.te.rate_hz = 30;
 
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 
 	dev_info(ctx->dev, "enter %dhz LP mode\n", drm_mode_vrefresh(&pmode->mode));
 }
@@ -811,7 +812,7 @@ static void ct3a_set_nolp_mode(struct gs_panel *ctx,
 	if (!gs_is_panel_active(ctx))
 		return;
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 
 	GS_DCS_BUF_ADD_CMDLIST(dev, unlock_cmd_f0);
 	/* manual mode */
@@ -841,7 +842,7 @@ static void ct3a_set_nolp_mode(struct gs_panel *ctx,
 	ct3a_set_panel_feat(ctx, pmode, idle_vrefresh, true);
 	ct3a_change_frequency(ctx, pmode);
 
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 
 	dev_info(ctx->dev, "exit LP mode\n");
 }
@@ -861,7 +862,7 @@ static int ct3a_set_op_hz(struct gs_panel *ctx, unsigned int hz)
 		return -EINVAL;
 	}
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 
 	ctx->op_hz = hz;
 	if (hz == 60)
@@ -887,7 +888,7 @@ static int ct3a_set_op_hz(struct gs_panel *ctx, unsigned int hz)
 		ct3a_wait_one_vblank(ctx);
 	}
 
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 
 	return 0;
 }
@@ -1039,7 +1040,7 @@ static void ct3a_update_idle_state(struct gs_panel *ctx)
 	/* triggering early exit causes a switch to 120hz */
 	ctx->timestamps.last_mode_set_ts = ktime_get();
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 
 	if (!ctx->idle_data.idle_delay_ms && spanel->force_changeable_te) {
 		dev_dbg(dev, "sending early exit out cmd\n");
@@ -1051,7 +1052,7 @@ static void ct3a_update_idle_state(struct gs_panel *ctx)
 		ct3a_update_refresh_mode(ctx, ctx->current_mode, 0);
 	}
 
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 }
 
 static void ct3a_commit_done(struct gs_panel *ctx)
@@ -1233,7 +1234,7 @@ static int ct3a_enable(struct drm_panel *panel)
 
 	dev_info(ctx->dev, "%s +\n", __func__);
 
-	PANEL_ATRACE_BEGIN(__func__);
+	DPU_ATRACE_BEGIN(__func__);
 
 	gs_panel_reset_helper(ctx);
 
@@ -1269,7 +1270,7 @@ static int ct3a_enable(struct drm_panel *panel)
 	ct3a_set_default_voltage(ctx, true);
 	dev_info(ctx->dev, "%s -\n", __func__);
 
-	PANEL_ATRACE_END(__func__);
+	DPU_ATRACE_END(__func__);
 
 	return 0;
 }
