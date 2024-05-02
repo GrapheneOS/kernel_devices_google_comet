@@ -415,6 +415,21 @@ static int ct3d_enable(struct drm_panel *panel)
 	return 0;
 }
 
+static int ct3d_disable(struct drm_panel *panel)
+{
+	struct gs_panel *ctx = container_of(panel, struct gs_panel, base);
+	struct ct3d_panel *spanel = to_spanel(ctx);
+	int ret;
+
+	spanel->is_hbm2_enabled = false;
+
+	ret = gs_panel_disable(panel);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
 static int ct3d_atomic_check(struct gs_panel *ctx, struct drm_atomic_state *state)
 {
 	struct drm_connector *conn = &ctx->gs_connector->base;
@@ -713,7 +728,7 @@ static int ct3d_panel_probe(struct mipi_dsi_device *dsi)
 }
 
 static const struct drm_panel_funcs ct3d_drm_funcs = {
-	.disable = gs_panel_disable,
+	.disable = ct3d_disable,
 	.unprepare = gs_panel_unprepare,
 	.prepare = gs_panel_prepare,
 	.enable = ct3d_enable,
