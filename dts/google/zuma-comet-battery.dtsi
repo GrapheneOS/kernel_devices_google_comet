@@ -34,6 +34,9 @@
 &max77779_fg {
 	max77779,dual-battery = "maxfg_base";
 	max77779,status-charge-threshold-ma = <30>;
+	max77779,fg_n_regval = /bits/ 16 <
+		0xC9 0x30F0    /* nThermCfg3 Register */
+	>;
 	maxim,fg-data {
 		#include "zuma-comet-battery-data.dtsi"
 	};
