@@ -170,16 +170,6 @@ static const struct gs_dsi_cmd ct3c_init_cmds[] = {
 
 	/* PASET: 2424 */
 	GS_DSI_CMD(MIPI_DCS_SET_PAGE_ADDRESS, 0x00, 0x00, 0x09, 0x77),
-
-	/* FFC 865Mbps @ fosc 180Mhz */
-	GS_DSI_CMDLIST(test_key_enable),
-	GS_DSI_CMD(0xFC, 0x5A, 0x5A),
-	GS_DSI_CMD(0xB0, 0x00, 0x2A, 0xC5),
-	GS_DSI_CMD(0xC5, 0x0D, 0x10, 0x80, 0x05),
-	GS_DSI_CMD(0xB0, 0x00, 0x2E, 0xC5),
-	GS_DSI_CMD(0xC5, 0x6A, 0x8B), /* 865Mbps FFC Setting */
-	GS_DSI_CMD(0xFC, 0xA5, 0xA5),
-	GS_DSI_CMDLIST(test_key_disable),
 };
 static DEFINE_GS_CMDSET(ct3c_init);
 
