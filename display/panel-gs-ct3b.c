@@ -52,12 +52,6 @@ enum ct3b_dbv_range {
 struct ct3b_panel {
 	/** @base: base panel struct */
 	struct gs_panel base;
-
-	/**
-	 * @auto_mode_vrefresh: indicates current minimum refresh rate while in auto mode,
-	 *			if 0 it means that auto mode is not enabled
-	 */
-	u32 auto_mode_vrefresh;
 	/** @force_changeable_te: force changeable TE (instead of fixed) during early exit */
 	bool force_changeable_te;
 	/** @force_changeable_te2: force changeable TE2 for monitoring refresh rate */
@@ -419,12 +413,13 @@ static void ct3b_update_irc(struct gs_panel *ctx, const enum gs_hbm_mode hbm_mod
 static u8 ct3b_get_te2_option(struct gs_panel *ctx)
 {
 	struct ct3b_panel *spanel = to_spanel(ctx);
+	struct gs_panel_status *sw_status = &ctx->sw_status;
 
 	if (!ctx || !ctx->current_mode || spanel->force_changeable_te2)
 		return TEX_OPT_CHANGEABLE;
 
 	if (ctx->current_mode->gs_mode.is_lp_mode ||
-	    (test_bit(FEAT_EARLY_EXIT, ctx->sw_status.feat) && spanel->auto_mode_vrefresh < 30))
+	    (test_bit(FEAT_EARLY_EXIT, sw_status->feat) && sw_status->idle_vrefresh < 30))
 		return TEX_OPT_FIXED;
 
 	return TEX_OPT_CHANGEABLE;
@@ -641,11 +636,14 @@ static void ct3b_set_panel_feat_frequency(struct gs_panel *ctx, unsigned long *f
  *
  * Configure panel features based on the context.
  */
-static void ct3b_set_panel_feat(struct gs_panel *ctx,
-	const struct gs_panel_mode *pmode, u32 idle_vrefresh, bool enforce)
+static void ct3b_set_panel_feat(struct gs_panel *ctx, const struct gs_panel_mode *pmode,
+			       bool enforce)
 {
 	struct device *dev = ctx->dev;
-	unsigned long *feat = ctx->sw_status.feat;
+	struct gs_panel_status *sw_status = &ctx->sw_status;
+	struct gs_panel_status *hw_status = &ctx->hw_status;
+	unsigned long *feat = sw_status->feat;
+	u32 idle_vrefresh = sw_status->idle_vrefresh;
 	u32 vrefresh = drm_mode_vrefresh(&pmode->mode);
 	u32 te_freq = gs_drm_mode_te_freq(&pmode->mode);
 	bool is_vrr = gs_is_vrr_mode(pmode);
@@ -671,10 +669,10 @@ static void ct3b_set_panel_feat(struct gs_panel *ctx,
 	if (enforce) {
 		bitmap_fill(changed_feat, FEAT_MAX);
 	} else {
-		bitmap_xor(changed_feat, feat, ctx->hw_status.feat, FEAT_MAX);
-		if (bitmap_empty(changed_feat, FEAT_MAX) && vrefresh == ctx->hw_status.vrefresh &&
-			idle_vrefresh == ctx->hw_status.idle_vrefresh &&
-			te_freq == ctx->hw_status.te.rate_hz) {
+		bitmap_xor(changed_feat, feat, hw_status->feat, FEAT_MAX);
+		if (bitmap_empty(changed_feat, FEAT_MAX) && vrefresh == hw_status->vrefresh &&
+			idle_vrefresh == hw_status->idle_vrefresh &&
+			te_freq == hw_status->te.rate_hz) {
 			dev_dbg(dev, "%s: no changes, skip update\n", __func__);
 			return;
 		}
@@ -688,7 +686,7 @@ static void ct3b_set_panel_feat(struct gs_panel *ctx,
 
 #ifndef PANEL_FACTORY_BUILD
 	/* TE setting */
-	ctx->sw_status.te.rate_hz = te_freq;
+	sw_status->te.rate_hz = te_freq;
 	if (ctx->panel_rev >= PANEL_REV_DVT1 || !test_bit(FEAT_OP_NS, feat)) {
 		GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
 		GS_DCS_BUF_ADD_CMD(dev, 0xBE, 0x47, 0x4A, 0x49, 0x4F);
@@ -726,10 +724,12 @@ static void ct3b_set_panel_feat(struct gs_panel *ctx,
 		GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x01);
 		GS_DCS_BUF_ADD_CMD(dev, 0x6D, 0x01);
 		GS_DCS_BUF_ADD_CMD(dev, 0x5A, 0x00);
+		hw_status->te.option = TEX_OPT_FIXED;
 	} else {
 		GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x01);
 		GS_DCS_BUF_ADD_CMD(dev, 0x6D, 0x00);
 		GS_DCS_BUF_ADD_CMD(dev, 0x5A, 0x01);
+		hw_status->te.option = TEX_OPT_CHANGEABLE;
 	}
 
 	/*
@@ -743,10 +743,10 @@ static void ct3b_set_panel_feat(struct gs_panel *ctx,
 	 */
 	ct3b_set_panel_feat_frequency(ctx, feat, vrefresh, idle_vrefresh, is_vrr);
 
-	ctx->hw_status.vrefresh = vrefresh;
-	ctx->hw_status.idle_vrefresh = idle_vrefresh;
-	ctx->hw_status.te.rate_hz = te_freq;
-	bitmap_copy(ctx->hw_status.feat, feat, FEAT_MAX);
+	hw_status->vrefresh = vrefresh;
+	hw_status->idle_vrefresh = idle_vrefresh;
+	hw_status->te.rate_hz = te_freq;
+	bitmap_copy(hw_status->feat, feat, FEAT_MAX);
 }
 
 /**
@@ -760,21 +760,19 @@ static void ct3b_set_panel_feat(struct gs_panel *ctx,
 static void ct3b_update_panel_feat(struct gs_panel *ctx, bool enforce)
 {
 	const struct gs_panel_mode *pmode = ctx->current_mode;
-	struct ct3b_panel *spanel = to_spanel(ctx);
-	u32 idle_vrefresh = spanel->auto_mode_vrefresh;
 
-	ct3b_set_panel_feat(ctx, pmode, idle_vrefresh, enforce);
+	ct3b_set_panel_feat(ctx, pmode, enforce);
 }
 
 static void ct3b_update_refresh_mode(struct gs_panel *ctx, const struct gs_panel_mode *pmode,
 				    const u32 idle_vrefresh)
 {
-	struct ct3b_panel *spanel = to_spanel(ctx);
+	struct gs_panel_status *sw_status = &ctx->sw_status;
 
 	dev_info(ctx->dev, "%s: mode: %s set idle_vrefresh: %u\n", __func__,
 		pmode->mode.name, idle_vrefresh);
 
-	spanel->auto_mode_vrefresh = idle_vrefresh;
+	sw_status->idle_vrefresh = idle_vrefresh;
 	/*
 	 * Note: when mode is explicitly set, panel performs early exit to get out
 	 * of idle at next vsync, and will not back to idle until not seeing new
@@ -783,7 +781,7 @@ static void ct3b_update_refresh_mode(struct gs_panel *ctx, const struct gs_panel
 	 * new frame commit will correct it if the guess is wrong.
 	 */
 	ctx->idle_data.panel_idle_vrefresh = idle_vrefresh;
-	ct3b_set_panel_feat(ctx, pmode, idle_vrefresh, false);
+	ct3b_set_panel_feat(ctx, pmode, false);
 	notify_panel_mode_changed(ctx);
 
 	dev_dbg(ctx->dev, "%s: display state is notified\n", __func__);
@@ -854,7 +852,6 @@ static void ct3b_wait_one_vblank(struct gs_panel *ctx)
 static bool ct3b_set_self_refresh(struct gs_panel *ctx, bool enable)
 {
 	const struct gs_panel_mode *pmode = ctx->current_mode;
-	struct ct3b_panel *spanel = to_spanel(ctx);
 	u32 idle_vrefresh;
 
 	dev_dbg(ctx->dev, "%s: %d\n", __func__, enable);
@@ -878,7 +875,7 @@ static bool ct3b_set_self_refresh(struct gs_panel *ctx, bool enable)
 		 * or switch to manual mode if idle should be disabled (idle_vrefresh=0)
 		 */
 		if ((pmode->idle_mode == GIDLE_MODE_ON_INACTIVITY) &&
-			(spanel->auto_mode_vrefresh != idle_vrefresh)) {
+			(ctx->sw_status.idle_vrefresh != idle_vrefresh)) {
 			ct3b_update_refresh_mode(ctx, pmode, idle_vrefresh);
 			return true;
 		}
@@ -968,6 +965,8 @@ static void ct3b_set_lp_mode(struct gs_panel *ctx, const struct gs_panel_mode *p
 
 	ctx->hw_status.vrefresh = 30;
 	ctx->hw_status.te.rate_hz = 30;
+	ctx->sw_status.te.rate_hz = 30;
+	ctx->sw_status.te.option = TEX_OPT_FIXED;
 
 	PANEL_ATRACE_END(__func__);
 
@@ -977,9 +976,7 @@ static void ct3b_set_lp_mode(struct gs_panel *ctx, const struct gs_panel_mode *p
 static void ct3b_set_nolp_mode(struct gs_panel *ctx,
 				  const struct gs_panel_mode *pmode)
 {
-	struct ct3b_panel *spanel = to_spanel(ctx);
 	struct device *dev = ctx->dev;
-	u32 idle_vrefresh = spanel->auto_mode_vrefresh;
 
 	if (!gs_is_panel_active(ctx))
 		return;
@@ -1006,7 +1003,7 @@ static void ct3b_set_nolp_mode(struct gs_panel *ctx,
 	GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, MIPI_DCS_WRITE_CONTROL_DISPLAY,
 					ctx->dimming_on ? 0x28 : 0x20);
 
-	ct3b_set_panel_feat(ctx, pmode, idle_vrefresh, true);
+	ct3b_set_panel_feat(ctx, pmode, true);
 	ct3b_change_frequency(ctx, pmode);
 
 	PANEL_ATRACE_END(__func__);
@@ -1135,7 +1132,6 @@ static int ct3b_atomic_check(struct gs_panel *ctx, struct drm_atomic_state *stat
 	struct drm_connector_state *new_conn_state =
 					drm_atomic_get_new_connector_state(state, conn);
 	struct drm_crtc_state *old_crtc_state, *new_crtc_state;
-	struct ct3b_panel *spanel = to_spanel(ctx);
 
 	if (!ctx->current_mode || drm_mode_vrefresh(&ctx->current_mode->mode) == 120 ||
 	    !new_conn_state || !new_conn_state->crtc)
@@ -1146,7 +1142,7 @@ static int ct3b_atomic_check(struct gs_panel *ctx, struct drm_atomic_state *stat
 	if (!old_crtc_state || !new_crtc_state || !new_crtc_state->active)
 		return 0;
 
-	if ((spanel->auto_mode_vrefresh && old_crtc_state->self_refresh_active) ||
+	if ((ctx->sw_status.idle_vrefresh && old_crtc_state->self_refresh_active) ||
 	    !drm_atomic_crtc_effectively_active(old_crtc_state) ||
 	    (ctx->current_mode->gs_mode.is_lp_mode &&
 		drm_mode_vrefresh(&new_crtc_state->mode) == 60)) {
@@ -1863,8 +1859,12 @@ static void ct3b_panel_init(struct gs_panel *ctx)
 #endif
 
 	/* re-init panel to decouple bootloader settings */
-	if (pmode)
-		ct3b_set_panel_feat(ctx, pmode, 0, true);
+	if (pmode) {
+		dev_info(ctx->dev, "%s: set mode: %s\n", __func__, pmode->mode.name);
+		ctx->sw_status.idle_vrefresh = 0;
+		ct3b_set_panel_feat(ctx, pmode, true);
+		ct3b_change_frequency(ctx, pmode);
+	}
 
 	ct3b_dimming_frame_setting(ctx, CT3B_DIMMING_FRAME);
 }
