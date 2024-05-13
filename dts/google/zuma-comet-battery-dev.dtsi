@@ -6,7 +6,7 @@
  *
  */
 
-#include "google-dts-base/zuma-dual-battery-common.dtsi"
+#include "google-dts-zuma/zuma-dual-battery-common.dtsi"
 
 / {
 	fragment@battery {

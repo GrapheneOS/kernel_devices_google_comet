@@ -4,7 +4,7 @@
  * https://www.google.com
  */
 
-#include "google-dts-base/zuma-board-uwb.dtsi"
+#include "google-dts-zuma/zuma-board-uwb.dtsi"
 &spi_18 {
         qm35@0 {
                 qm35-vdd4-supply = <&s_ldo17_reg>;

@@ -5,7 +5,7 @@
  * Copyright 2023 Google LLC
  *
  */
-#include "google-dts-base/zuma-charging.dtsi"
+#include "google-dts-zuma/zuma-charging.dtsi"
 
 &pinctrl_0 {
 
@@ -23,7 +23,7 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
-	#include "google-dts-base/zuma-charge-pump-pca9468.dtsi"
+	#include "google-dts-zuma/zuma-charge-pump-pca9468.dtsi"
 };
 
 &pca9468_dc {
