@@ -6,7 +6,7 @@
  *
  */
 
-#include "google-dts-base/zuma-battery.dtsi"
+#include "google-dts-zuma/zuma-battery.dtsi"
 
 &pinctrl_0 {
 /* [MAX77729FEWN : INTB] > IF_PMIC_IRQ_L > [XEINT_22 : SC59845XWE] */
@@ -55,7 +55,7 @@
 	clock-frequency = <1000000>;
 	pinctrl-0 = <&hsi2c6_bus>;
 
-	#include "google-dts-base/zuma-max777xx.dtsi"
+	#include "google-dts-zuma/zuma-max777xx.dtsi"
 };
 
 &max77729_pmic {

@@ -6,8 +6,8 @@
  *
  */
 
-#include "google-dts-base/zuma-dual-battery-common.dtsi"
-#include "google-dts-base/zuma-max777xx_fwupdate.dtsi"
+#include "google-dts-zuma/zuma-dual-battery-common.dtsi"
+#include "google-dts-zuma/zuma-max777xx_fwupdate.dtsi"
 
 / {
 	fragment@battery {

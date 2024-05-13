@@ -21,7 +21,7 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	#include "google-dts-base/zuma-max1720x-fg.dtsi"
+	#include "google-dts-zuma/zuma-max1720x-fg.dtsi"
 };
 
 &max1720x_fg {

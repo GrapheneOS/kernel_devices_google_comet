@@ -5,16 +5,16 @@
  * Copyright 2024 Google LLC
  */
 
-#include "google-dts-base/zumapro-common.dtsi"
+#include "google-dts-zumapro/zumapro-common.dtsi"
 
 #include "zuma-comet-aoc.dtsi"
-#include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-gsa-gsc.dtsi"
-#include "google-dts-base/devices/ripcurrent/zuma-ripcurrent-touch.dtsi"
-#include "google-dts-base/zumapro-board-bluetooth.dtsi"
+#include "google-dts-ripcurrent/zuma-ripcurrent-gsa-gsc.dtsi"
+#include "google-dts-ripcurrent/zuma-ripcurrent-touch.dtsi"
+#include "google-dts-zumapro/zumapro-board-bluetooth.dtsi"
 #include "zuma-comet-display.dtsi"
 #include "zuma-comet-ese.dtsi"
 #include "zuma-comet-nfc.dtsi"
-#include "google-dts-base/zuma-board-pcie.dtsi"
+#include "google-dts-zuma/zuma-board-pcie.dtsi"
 #include "zuma-comet-hall-sensor.dtsi"
 #include "zuma-comet-haptics.dtsi"
 #include "zuma-comet-thermal.dtsi"
