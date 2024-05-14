@@ -359,7 +359,7 @@ static const struct gs_dsi_cmd ct3b_init_cmds[] = {
 
 	GS_DSI_CMD(0xBE, 0x5F, 0x4A, 0x49, 0x4F),
 	GS_DSI_CMD(0x6F, 0xC5),
-	GS_DSI_CMD(0xBA, 0x00),
+	GS_DSI_CMD(0xBA, 0x10),
 
 	/* Frame insertion default config */
 	GS_DSI_CMD(0x6F, 0x2D),
@@ -569,7 +569,6 @@ static void ct3b_set_panel_feat_frequency(struct gs_panel *ctx, unsigned long *f
 {
 	struct device *dev = ctx->dev;
 	u8 val;
-	const bool is_ns_mode = test_bit(FEAT_OP_NS, feat);
 
 	/*
 	 * Description: this sequence possibly overrides some configs early-exit
@@ -579,109 +578,73 @@ static void ct3b_set_panel_feat_frequency(struct gs_panel *ctx, unsigned long *f
 		/* frame insertion on */
 		GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x30);
 		/* target frequency */
-		if (is_ns_mode && ctx->panel_rev >= PANEL_REV_DVT1) {
-			if (idle_vrefresh == 30) {
-				val = 0x05;
-			} else if (idle_vrefresh == 10) {
-				val = 0x06;
-			} else {
-				if (idle_vrefresh != 1)
-					dev_warn(ctx->dev, "%s: unsupported target freq %d (ns)\n",
-						 __func__, idle_vrefresh);
-				/* 1Hz */
-				val = 0x07;
-			}
+		if (idle_vrefresh == 60) {
+			if (ctx->panel_rev < PANEL_REV_EVT1_1)
+				val = 0x00;
+			else
+				val = 0x01;
+		} else if (idle_vrefresh == 30) {
+			if (ctx->panel_rev < PANEL_REV_EVT1_1)
+				val = 0x01;
+			else
+				val = 0x02;
+		} else if (idle_vrefresh == 10) {
+			if (ctx->panel_rev < PANEL_REV_EVT1_1)
+				val = 0x02;
+			else
+				val = 0x03;
 		} else {
-			if (idle_vrefresh == 60) {
-				if (ctx->panel_rev < PANEL_REV_EVT1_1)
-					val = 0x00;
-				else
-					val = 0x01;
-
-			} else if (idle_vrefresh == 30) {
-				if (ctx->panel_rev < PANEL_REV_EVT1_1)
-					val = 0x01;
-				else
-					val = 0x02;
-			} else if (idle_vrefresh == 10) {
-				if (ctx->panel_rev < PANEL_REV_EVT1_1)
-					val = 0x02;
-				else
-					val = 0x03;
-			} else {
-				if (idle_vrefresh != 1)
-					dev_warn(ctx->dev, "%s: unsupported target freq %d (ns)\n",
-						 __func__, idle_vrefresh);
-				/* 1Hz */
-				if (ctx->panel_rev < PANEL_REV_EVT1_1)
-					val = 0x03;
-				else
-					val = 0x04;
-			}
+			if (idle_vrefresh != 1)
+				dev_warn(ctx->dev, "%s: unsupported target freq %d (ns)\n",
+					 __func__, idle_vrefresh);
+			/* 1Hz */
+			if (ctx->panel_rev < PANEL_REV_EVT1_1)
+				val = 0x03;
+			else
+				val = 0x04;
 		}
 		GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x6D, val);
 	} else { /* manual */
-		if (is_ns_mode && ctx->panel_rev >= PANEL_REV_DVT1) {
-			if (vrefresh == 1) {
-				GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x30);
-				GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x6D, 0x07);
-			} else if (vrefresh == 10) {
-				GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x30);
-				GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x6D, 0x06);
-			} else if (vrefresh == 30) {
-				GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x30);
-				GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x6D, 0x05);
-			} else {
-				if (vrefresh != 60)
-					dev_warn(ctx->dev,
-						 "%s: unsupported manual freq %d (hs)\n",
-						 __func__, vrefresh);
-				/* 60Hz */
-				GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x01);
-				GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x26, 0x00);
-			}
+		if (vrefresh == 1) {
+			if (ctx->panel_rev < PANEL_REV_EVT1_1)
+				val = 0x03;
+			else
+				val = 0x04;
+
+			GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x30);
+			GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x6D, val);
+		} else if (vrefresh == 10) {
+			if (ctx->panel_rev < PANEL_REV_EVT1_1)
+				val = 0x02;
+			else
+				val = 0x03;
+
+			GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x30);
+			GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x6D, val);
+		} else if (vrefresh == 30) {
+			if (ctx->panel_rev < PANEL_REV_EVT1_1)
+				val = 0x01;
+			else
+				val = 0x02;
+
+			GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x30);
+			GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x6D, val);
+		} else if (vrefresh == 60) {
+			if (ctx->panel_rev < PANEL_REV_EVT1_1)
+				val = 0x00;
+			else
+				val = 0x01;
+
+			GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x30);
+			GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x6D, val);
 		} else {
-			if (vrefresh == 1) {
-				if (ctx->panel_rev < PANEL_REV_EVT1_1)
-					val = 0x03;
-				else
-					val = 0x04;
-
-				GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x30);
-				GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x6D, val);
-			} else if (vrefresh == 10) {
-				if (ctx->panel_rev < PANEL_REV_EVT1_1)
-					val = 0x02;
-				else
-					val = 0x03;
-
-				GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x30);
-				GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x6D, val);
-			} else if (vrefresh == 30) {
-				if (ctx->panel_rev < PANEL_REV_EVT1_1)
-					val = 0x01;
-				else
-					val = 0x02;
-
-				GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x30);
-				GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x6D, val);
-			} else if (vrefresh == 60) {
-				if (ctx->panel_rev < PANEL_REV_EVT1_1)
-					val = 0x00;
-				else
-					val = 0x01;
-
-				GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x30);
-				GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x6D, val);
-			} else {
-				if (vrefresh != 120)
-					dev_warn(ctx->dev,
-						 "%s: unsupported manual freq %d (hs)\n",
-						 __func__, vrefresh);
-				/* 120Hz */
-				GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x00);
-				GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x26, 0x00);
-			}
+			if (vrefresh != 120)
+				dev_warn(ctx->dev,
+					 "%s: unsupported manual freq %d (hs)\n",
+					 __func__, vrefresh);
+			/* 120Hz */
+			GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x00);
+			GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x26, 0x00);
 		}
 	}
 }
@@ -709,21 +672,11 @@ static void ct3b_set_panel_feat(struct gs_panel *ctx, const struct gs_panel_mode
 	DECLARE_BITMAP(changed_feat, FEAT_MAX);
 
 #ifndef PANEL_FACTORY_BUILD
-	if (is_vrr) {
-		if (pmode->mode.flags & DRM_MODE_FLAG_NS)
-			set_bit(FEAT_OP_NS, feat);
-		else
-			clear_bit(FEAT_OP_NS, feat);
+	if (!test_bit(FEAT_FRAME_AUTO, feat)) {
+		vrefresh = idle_vrefresh ?: 1;
+		idle_vrefresh = 0;
 	}
-	if (ctx->panel_rev >= PANEL_REV_DVT1 || !test_bit(FEAT_OP_NS, feat)) {
-		if (!test_bit(FEAT_FRAME_AUTO, feat)) {
-			vrefresh = idle_vrefresh ?: 1;
-			idle_vrefresh = 0;
-		}
-		set_bit(FEAT_EARLY_EXIT, feat);
-	} else {
-		clear_bit(FEAT_EARLY_EXIT, feat);
-	}
+	set_bit(FEAT_EARLY_EXIT, feat);
 #endif
 
 	if (enforce) {
@@ -746,26 +699,18 @@ static void ct3b_set_panel_feat(struct gs_panel *ctx, const struct gs_panel_mode
 #ifndef PANEL_FACTORY_BUILD
 	/* TE setting */
 	sw_status->te.rate_hz = te_freq;
-	if (ctx->panel_rev >= PANEL_REV_DVT1 || !test_bit(FEAT_OP_NS, feat)) {
+	if (te_freq == 60) {
 		GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
 		GS_DCS_BUF_ADD_CMD(dev, 0xBE, 0x47, 0x4A, 0x49, 0x4F);
 
-		if (te_freq == 60 && !test_bit(FEAT_OP_NS, feat)) {
-			GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x03);
-			GS_DCS_BUF_ADD_CMD(dev, 0x35, 0x01);
-			GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x1C);
-			GS_DCS_BUF_ADD_CMD(dev, 0xBA, 0x01, 0x01, 0x01, 0x01, 0x77, 0x77,
-					0x77, 0x77, 0x77, 0x77, 0x77, 0x77);
-		} else {
-			GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x03);
-			GS_DCS_BUF_ADD_CMD(dev, 0x35, 0x00);
-			GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x1C);
-			GS_DCS_BUF_ADD_CMD(dev, 0xBA, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00,
-					0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-		}
+		GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x03);
+		GS_DCS_BUF_ADD_CMD(dev, 0x35, 0x01);
+		GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x1C);
+		GS_DCS_BUF_ADD_CMD(dev, 0xBA, 0x01, 0x01, 0x01, 0x01, 0x77, 0x77, 0x77,
+				0x77, 0x77, 0x77, 0x77, 0x77);
 	} else {
 		GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
-		GS_DCS_BUF_ADD_CMD(dev, 0xBE, 0x5F, 0x4A, 0x49, 0x4F);
+		GS_DCS_BUF_ADD_CMD(dev, 0xBE, 0x47, 0x4A, 0x49, 0x4F);
 		GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x03);
 		GS_DCS_BUF_ADD_CMD(dev, 0x35, 0x00);
 		GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x1C);
@@ -853,12 +798,6 @@ static void ct3b_change_frequency(struct gs_panel *ctx, const struct gs_panel_mo
 
 	if (!ctx)
 		return;
-
-	if (vrefresh > ctx->op_hz) {
-		dev_err(ctx->dev, "invalid freq setting: op_hz=%u, vrefresh=%u\n",
-				ctx->op_hz, vrefresh);
-		return;
-	}
 
 	if (pmode->idle_mode == GIDLE_MODE_ON_INACTIVITY)
 		idle_vrefresh = ct3b_get_min_idle_vrefresh(ctx, pmode);
@@ -1139,52 +1078,6 @@ static void ct3b_set_nolp_mode(struct gs_panel *ctx,
 	DPU_ATRACE_END(__func__);
 
 	dev_info(dev, "exit LP mode\n");
-}
-
-static int ct3b_set_op_hz(struct gs_panel *ctx, unsigned int hz)
-{
-	const unsigned int vrefresh = drm_mode_vrefresh(&ctx->current_mode->mode);
-
-	if (gs_is_vrr_mode(ctx->current_mode)) {
-		dev_warn(ctx->dev, "%s: should be set via mode switch\n", __func__);
-		return -EINVAL;
-	}
-
-	if ((vrefresh > hz) || ((hz != 60) && (hz != 120))) {
-		dev_err(ctx->dev, "invalid op_hz=%u for vrefresh=%u\n",
-			hz, vrefresh);
-		return -EINVAL;
-	}
-
-	DPU_ATRACE_BEGIN(__func__);
-
-	ctx->op_hz = hz;
-	if (hz == 60)
-		set_bit(FEAT_OP_NS, ctx->sw_status.feat);
-	else
-		clear_bit(FEAT_OP_NS, ctx->sw_status.feat);
-
-	if (gs_is_panel_active(ctx))
-		ct3b_update_panel_feat(ctx, false);
-
-	dev_info(ctx->dev, "%s op_hz at %d\n",
-		gs_is_panel_active(ctx) ? "set" : "cache", hz);
-
-	if (hz == 120) {
-		/*
-		 * We may transfer the frame for the first TE after switching from
-		 * NS to HS mode. The DDIC read speed will change from 60Hz to 120Hz,
-		 * but the DPU write speed will remain the same. In this case,
-		 * underruns would happen. Waiting for an extra vblank here so that
-		 * the frame can be postponed to the next TE to avoid the noises.
-		 */
-		dev_dbg(ctx->dev, "wait one vblank after NS to HS\n");
-		ct3b_wait_one_vblank(ctx);
-	}
-
-	DPU_ATRACE_END(__func__);
-
-	return 0;
 }
 
 static void ct3b_dimming_frame_setting(struct gs_panel *ctx, u8 dimming_frame)
@@ -1994,7 +1887,6 @@ static int ct3b_panel_probe(struct mipi_dsi_device *dsi)
 		return -ENOMEM;
 	}
 
-	spanel->base.op_hz = 120;
 	ctx->hw_status.vrefresh = 60;
 	ctx->hw_status.te.rate_hz = 60;
 	spanel->dbv_range = DBV_INIT;
@@ -2126,7 +2018,6 @@ static const struct gs_panel_funcs ct3b_gs_funcs = {
 #ifndef PANEL_FACTORY_BUILD
 	.refresh_ctrl = ct3b_refresh_ctrl,
 #endif
-	.set_op_hz = ct3b_set_op_hz,
 	.is_mode_seamless = ct3b_is_mode_seamless,
 	.mode_set = ct3b_mode_set,
 	.panel_init = ct3b_panel_init,
