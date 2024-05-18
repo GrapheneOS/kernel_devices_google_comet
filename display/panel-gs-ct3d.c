@@ -426,6 +426,8 @@ static int ct3d_enable(struct drm_panel *panel)
 
 	GS_DCS_WRITE_CMD(dev, MIPI_DCS_SET_DISPLAY_ON);
 
+	ctx->dsi_hs_clk_mbps = MIPI_DSI_FREQ_MBPS_DEFAULT;
+
 	return 0;
 }
 
@@ -894,9 +896,9 @@ struct gs_panel_desc google_ct3d = {
 	.reg_ctrl_desc = &ct3d_reg_ctrl_desc,
 	.panel_func = &ct3d_drm_funcs,
 	.gs_panel_func = &ct3d_gs_funcs,
+	.default_dsi_hs_clk_mbps = MIPI_DSI_FREQ_MBPS_DEFAULT,
 	.reset_timing_ms = {1, 1, 20},
-	//TODO(gilliu) : implement the refresh_on_lp feature on gs_panel.
-	//.refresh_on_lp = true,
+	.refresh_on_lp = true,
 };
 
 static int ct3d_panel_config(struct gs_panel *ctx)
