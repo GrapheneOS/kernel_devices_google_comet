@@ -10,7 +10,6 @@ p9222: p9222@61 {
 	compatible = "idt,p9222";
 	reg = <0x61>;
 
-	dev-name = "p9222";
 
 	/* Support p9412 GPIO */
 	idt,has_p9412_gpio;
