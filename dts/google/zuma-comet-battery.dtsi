@@ -26,6 +26,8 @@
 
 			google_dual_batt_gauge: google,dual_batt_gauge {
 				google,vbatt-ov-allowed-idx = <3>;
+				google,seq-fg-soc-limit = <2>;
+				google,seq-fg-delta-limit = <3>;
 			};
 		};
 	};
