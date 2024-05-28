@@ -106,6 +106,14 @@
 &drmdecon1 {
 	status = "okay";
 	connector = <0x1 0x2 0x10>;
+	bts_scen_name = "dpu_qurgent_default";
+	bts_scen_min_panel_width = <1080>;
+	bts_scen_min_panel_height = <2424>;
+	bts_scen_min_fps = <120>;
+	bts_scen_min_rt = <5004799>;
+	bts_scen_max_rt = <5105906>;
+	bts_scen_min_peak = <4609478>;
+	bts_scen_max_peak = <4702599>;
 };
 
 &drmdp {
