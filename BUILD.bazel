@@ -8,6 +8,7 @@ load(
     "//build/kernel/kleaf:kernel.bzl",
     "kernel_abi",
     "kernel_build",
+    "kernel_build_config",
     "kernel_images",
     "kernel_module_group",
     "kernel_modules_install",
@@ -17,15 +18,17 @@ load(
 load("//common:modules.bzl", "get_gki_modules_list")
 load(
     "//private/devices/google/common/kleaf:device_build_configs.bzl",
-    "device_build_configs",
     "extracted_system_dlkm",
     "lto_dependant_kernel_module",
 )
 
-device_build_configs(
-    name = "build.config.comet",
-    base_build_config = ":build.config.comet",
-    device_name = "comet",
+kernel_build_config(
+    name = "comet_build_config",
+    srcs = [
+        # do not sort
+        "//common:set_kernel_dir_build_config",
+        "build.config.comet",
+    ],
 )
 
 filegroup(
@@ -144,7 +147,6 @@ kernel_build(
     ]) + [
         # keep sorted
         "//common:kernel_aarch64_sources",
-        "//private/devices/google/common:debug_build_configs",
         "//private/devices/google/zumapro:build.config.zumapro",
         "//private/google-modules/bms/misc:bms-misc.kconfig",
         "//private/google-modules/display/common:common.kconfig",
@@ -170,7 +172,7 @@ kernel_build(
     ] + _ZUMA_COMET_DTBOS + _ZUMAPRO_COMET_DTBOS,
     # TODO(b/221278445): Use real GKI
     base_kernel = "//common:kernel_aarch64_download_or_build",
-    build_config = ":device_build_config",
+    build_config = ":comet_build_config",
     collect_unstripped_modules = True,
     dtstree = "//private/devices/google/comet/dts:comet.dt",
     kconfig_ext = "//private/google-modules/soc/gs:Kconfig.ext",
