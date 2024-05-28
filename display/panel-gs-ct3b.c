@@ -69,6 +69,8 @@ struct ct3b_panel {
 
 	/** @needs_display_on: if display_on command needs to send after flip done */
 	bool needs_display_on;
+	/** @needs_aod_idle: if AoD idle command needs to send after commit done */
+	bool needs_aod_idle;
 };
 
 #define to_spanel(ctx) container_of(ctx, struct ct3b_panel, base)
@@ -862,6 +864,8 @@ static void ct3b_wait_one_vblank(struct gs_panel *ctx)
 static bool ct3b_set_self_refresh(struct gs_panel *ctx, bool enable)
 {
 	const struct gs_panel_mode *pmode = ctx->current_mode;
+	struct ct3b_panel *spanel = to_spanel(ctx);
+	struct device *dev = ctx->dev;
 	u32 idle_vrefresh;
 
 	dev_dbg(ctx->dev, "%s: %d\n", __func__, enable);
@@ -874,6 +878,19 @@ static bool ct3b_set_self_refresh(struct gs_panel *ctx, bool enable)
 		/* set 1Hz while self refresh is active, otherwise clear it */
 		ctx->idle_data.panel_idle_vrefresh = enable ? 1 : 0;
 		notify_panel_mode_changed(ctx);
+
+		/* 1Hz */
+		if (spanel->needs_aod_idle && ctx->panel_rev >= PANEL_REV_EVT1_1) {
+			GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x00);
+			GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
+			GS_DCS_BUF_ADD_CMD(dev, 0xBE, 0x47, 0x4A, 0x49, 0x4F);
+			GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x18);
+			GS_DCS_BUF_ADD_CMD(dev, 0xBB, 0x01, 0x1D);
+			GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x2F, 0x30);
+
+			spanel->needs_aod_idle = false;
+		}
+
 		return false;
 	}
 
@@ -1009,6 +1026,7 @@ static void ct3b_refresh_ctrl(struct gs_panel *ctx)
 static void ct3b_set_lp_mode(struct gs_panel *ctx, const struct gs_panel_mode *pmode)
 {
 	struct device *dev = ctx->dev;
+	struct ct3b_panel *spanel = to_spanel(ctx);
 
 	dev_dbg(ctx->dev, "%s\n", __func__);
 
@@ -1026,24 +1044,13 @@ static void ct3b_set_lp_mode(struct gs_panel *ctx, const struct gs_panel_mode *p
 	GS_DCS_BUF_ADD_CMD(dev, 0xFF, 0xAA, 0x55, 0xA5, 0x81);
 	GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x0E);
 	GS_DCS_BUF_ADD_CMD(dev, 0xF5, 0x20);
-	if (ctx->panel_rev >= PANEL_REV_EVT1_1) {
-		GS_DCS_BUF_ADD_CMD(dev, MIPI_DCS_ENTER_IDLE_MODE);
-
-		/* skip 1Hz */
-		GS_DCS_BUF_ADD_CMD(dev, 0x2F, 0x00);
-		GS_DCS_BUF_ADD_CMD(dev, 0xF0, 0x55, 0xAA, 0x52, 0x08, 0x00);
-		GS_DCS_BUF_ADD_CMD(dev, 0xBE, 0x47, 0x4A, 0x49, 0x4F);
-		GS_DCS_BUF_ADD_CMD(dev, 0x6F, 0x18);
-		GS_DCS_BUF_ADD_CMD(dev, 0xBB, 0x01, 0x1D);
-		GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, 0x2F, 0x30);
-	} else {
-		GS_DCS_BUF_ADD_CMD_AND_FLUSH(dev, MIPI_DCS_ENTER_IDLE_MODE);
-	}
+	GS_DCS_BUF_ADD_CMD(dev, MIPI_DCS_ENTER_IDLE_MODE);
 
 	ctx->hw_status.vrefresh = 30;
 	ctx->hw_status.te.rate_hz = 30;
 	ctx->sw_status.te.rate_hz = 30;
 	ctx->sw_status.te.option = TEX_OPT_FIXED;
+	spanel->needs_aod_idle = true;
 
 	PANEL_ATRACE_END(__func__);
 
@@ -1141,9 +1148,11 @@ static int ct3b_atomic_check(struct gs_panel *ctx, struct drm_atomic_state *stat
 	struct drm_connector_state *new_conn_state =
 					drm_atomic_get_new_connector_state(state, conn);
 	struct drm_crtc_state *old_crtc_state, *new_crtc_state;
+	const struct gs_panel_mode *pmode;
+	bool was_lp_mode, is_lp_mode = false;
 
-	if (!ctx->current_mode || drm_mode_vrefresh(&ctx->current_mode->mode) == 120 ||
-	    !new_conn_state || !new_conn_state->crtc)
+
+	if (!ctx->current_mode || !new_conn_state || !new_conn_state->crtc)
 		return 0;
 
 	new_crtc_state = drm_atomic_get_new_crtc_state(state, new_conn_state->crtc);
@@ -1151,10 +1160,25 @@ static int ct3b_atomic_check(struct gs_panel *ctx, struct drm_atomic_state *stat
 	if (!old_crtc_state || !new_crtc_state || !new_crtc_state->active)
 		return 0;
 
+	was_lp_mode = ctx->current_mode->gs_mode.is_lp_mode;
+	pmode = gs_panel_get_mode(ctx, &new_crtc_state->mode);
+	if (pmode)
+		is_lp_mode = pmode->gs_mode.is_lp_mode;
+
+	if (drm_mode_vrefresh(&ctx->current_mode->mode) == 120 && !is_lp_mode)
+		return 0;
+
+	/* don't skip update when switching between AoD and normal mode */
+	if (pmode) {
+		if (was_lp_mode != is_lp_mode)
+			new_crtc_state->color_mgmt_changed = true;
+	} else {
+		dev_err(ctx->dev, "%s: no new mode\n", __func__);
+	}
+
 	if ((ctx->sw_status.idle_vrefresh && old_crtc_state->self_refresh_active) ||
 	    !drm_atomic_crtc_effectively_active(old_crtc_state) ||
-	    (ctx->current_mode->gs_mode.is_lp_mode &&
-		drm_mode_vrefresh(&new_crtc_state->mode) == 60)) {
+	    (was_lp_mode && drm_mode_vrefresh(&new_crtc_state->mode) == 60)) {
 		struct drm_display_mode *mode = &new_crtc_state->adjusted_mode;
 
 		mode->clock = mode->htotal * mode->vtotal * 120 / 1000;
@@ -2069,6 +2093,7 @@ struct gs_panel_desc gs_ct3b = {
 	.panel_func = &ct3b_drm_funcs,
 	.gs_panel_func = &ct3b_gs_funcs,
 	.reset_timing_ms = { 1, 1, 20 },
+	.refresh_on_lp = true,
 };
 
 static const struct of_device_id gs_panel_of_match[] = {
