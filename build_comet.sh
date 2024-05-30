@@ -18,5 +18,4 @@ exec tools/bazel run \
     ${parameters} \
     --config=stamp \
     --config=comet \
-    --config=fast \
     //private/devices/google/comet:zumapro_comet_dist "$@"
