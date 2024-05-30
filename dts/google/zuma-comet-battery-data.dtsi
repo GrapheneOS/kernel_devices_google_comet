@@ -11,7 +11,7 @@ max77779,config {
 	/* CT3-B_ATL_RC2_BC79_2mOhm_3521_2_090523_20240401.model.ini.txt, b/332397741#comment3 */
 	max77779,atl-1k {
 		max77779,batt-id-kohm = <1>;
-		max77779,model-version = <6>;
+		max77779,model-version = <7>;
 		max77779,force-reset-model-data;
 		max77779,fg-model = /bits/ 16 <
 			0xa500 0xb6f0 0xb990 0xbac0 0xbda0 0xbef0 0xc1d0 0xc410
@@ -48,7 +48,7 @@ max77779,config {
 	/* CT3-B_COS_RC2_BC79_2mOhm_3520_1_090523_20240401.model.ini.txt, b/332397741#comment3 */
 	max77779,cos-2k {
 		max77779,batt-id-kohm = <2>;
-		max77779,model-version = <6>;
+		max77779,model-version = <7>;
 		max77779,force-reset-model-data;
 		max77779,fg-model = /bits/ 16 <
 			0xa500 0xb6d0 0xbac0 0xbc20 0xbd10 0xbee0 0xc0e0 0xc310
