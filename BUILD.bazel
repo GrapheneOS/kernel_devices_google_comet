@@ -140,7 +140,6 @@ kernel_build(
     srcs = glob([
         "build.config.*",
         "dts/**",
-        "comet*.fragment",
     ]) + [
         # keep sorted
         "//common:kernel_aarch64_sources",
@@ -171,7 +170,10 @@ kernel_build(
     base_kernel = "//common:kernel_aarch64_download_or_build",
     build_config = ":comet_build_config",
     collect_unstripped_modules = True,
-    defconfig_fragments = ["//private/devices/google/zumapro:zumapro_defconfig"],
+    defconfig_fragments = [
+        "//private/devices/google/zumapro:zumapro_defconfig",
+        "comet_defconfig",
+    ],
     dtstree = "//private/devices/google/comet/dts:comet.dt",
     kconfig_ext = "Kconfig.ext",
     kmi_symbol_list = "//common:android/abi_gki_aarch64_pixel",
