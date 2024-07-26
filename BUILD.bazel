@@ -140,6 +140,7 @@ kernel_build(
     srcs = glob([
         "build.config.*",
         "dts/**",
+        "comet*.fragment",
     ]) + [
         # keep sorted
         "//common:kernel_aarch64_sources",
@@ -170,10 +171,7 @@ kernel_build(
     base_kernel = "//common:kernel_aarch64_download_or_build",
     build_config = ":comet_build_config",
     collect_unstripped_modules = True,
-    defconfig_fragments = [
-        "//private/devices/google/zumapro:zumapro_defconfig",
-        "comet_defconfig",
-    ],
+    defconfig_fragments = ["//private/devices/google/zumapro:zumapro_defconfig"],
     dtstree = "//private/devices/google/comet/dts:comet.dt",
     kconfig_ext = "Kconfig.ext",
     kmi_symbol_list = "//common:android/abi_gki_aarch64_pixel",
@@ -232,7 +230,6 @@ kernel_module(
         "drivers/input/keydebug.ko",
         "drivers/input/misc/vl53l1/stmvl53l1.ko",
         "drivers/iommu/exynos-pcie-iommu.ko",
-        "drivers/iommu/iovad-best-fit-algo.ko",
         "drivers/iommu/samsung-iommu-group.ko",
         "drivers/iommu/samsung-secure-iova.ko",
         "drivers/iommu/samsung_iommu_v9.ko",

@@ -21,7 +21,6 @@
 
 &google_battery {
 	google,fg-psy-name = "max77779fg";
-	google,vbatt-crit-deadline-sec = <100>;
 };
 
 &hsi2c6_bus {
